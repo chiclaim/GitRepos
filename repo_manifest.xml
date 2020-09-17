@@ -1,0 +1,8 @@
+<manifest>
+
+    <config branch="master"/>
+
+    <project name="DesignPattern" git="git@github.com:chiclaim/DesignPattern.git"/>
+    <project name="Manifest" git="git@github.com:chiclaim/Manifest.git"/>
+
+</manifest>
