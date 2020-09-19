@@ -264,8 +264,7 @@ def execute_cfb(branch_name):
     element_tree.write(os.path.abspath(MANIFEST_NAME))
 
     # commit and push
-    os.system('git commit -m "update manifest branch"')
-
+    os.system('git commit -m "update manifest branch" {0}'.format(MANIFEST_NAME))
     push(True)
 
 
