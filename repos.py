@@ -243,7 +243,7 @@ def merge(source_branch):
         os.system('git {0} {1}'.format(Command.MERGE.value, source_branch))
 
 
-def execute_cfb(branch_name):
+def execute_cfb(branch_name, need_push=False):
     # 批量新建
     target_path = get_parent_dir()
     for project_name in manifest.projects.keys():
@@ -264,7 +264,7 @@ def execute_cfb(branch_name):
 
     # commit and push
     os.system('git commit -m "update manifest branch" {0}'.format(MANIFEST_NAME))
-    push(True)
+    push(need_push)
 
 
 def execute_raw_command(raw_command):
@@ -339,7 +339,7 @@ def execute():
             elif arg == 'cfb':
                 if len(args) > 1:
                     new_branch = args[1]
-                    execute_cfb(new_branch)
+                    execute_cfb(new_branch, '-p' in args)
                 else:
                     print_with_color('err: cfb command must contain new branch name', PrintColor.RED)
                 break
