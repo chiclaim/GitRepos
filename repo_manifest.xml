@@ -1,8 +1,9 @@
 <manifest>
 
-    <config branch="master"/>
+    <config branch="feature/cfb" />
 
-    <project name="DesignPattern" git="git@github.com:chiclaim/DesignPattern.git"/>
-    <project name="Manifest" git="git@github.com:chiclaim/Manifest.git"/>
-
+    <project git="git@github.com:chiclaim/Manifest.git" name="Manifest1" />
+    <project git="git@github.com:chiclaim/Manifest.git" name="Manifest2" />
+    <project git="git@github.com:chiclaim/Manifest.git" name="Manifest3" />
+    <project git="git@github.com:chiclaim/Repos.git" name="Repos" />
 </manifest>

@@ -2,10 +2,12 @@ import signal
 import sys
 import os
 import getopt
+import string
 from enum import Enum
 from xml.etree import ElementTree as eTree
 
 MANIFEST_NAME = "repo_manifest.xml"
+manifest_dir: string
 
 
 class Manifest:
@@ -35,6 +37,8 @@ class Command(Enum):
     BRANCH = 'branch'
     CHECKOUT = 'checkout'
     STATUS = 'status'
+    MERGE = 'merge'
+    CUSTOM = '-c'
 
 
 manifest = Manifest()
@@ -94,9 +98,20 @@ def parse_manifest():
         manifest.projects[project.get('name')] = project.get('git')
 
 
+def check_project_exist(project_dir, project_name):
+    if not os.path.exists(project_dir):
+        print_with_color('Project `{0}` is not exist, you may need to sync projects'.format(project_name),
+                         PrintColor.RED)
+        sys.exit(-1)
+
+
+# manifest 上一级目录
+def get_parent_dir():
+    return os.path.dirname(manifest_dir)
+
+
 def pull():
-    # 上一级目录
-    target_path = os.path.abspath(os.path.join(os.getcwd(), "../"))
+    target_path = get_parent_dir()
     for project_name in manifest.projects.keys():
         git_url = manifest.projects[project_name]
         project_dir = os.path.join(target_path, project_name)
@@ -117,22 +132,29 @@ def pull():
 
 
 def push():
-    pass
+    target_path = get_parent_dir()
+    for project_name in manifest.projects.keys():
+        project_dir = os.path.join(target_path, project_name)
+        check_project_exist(project_dir, project_name)
+        print_with_color('{0:-^50}'.format(project_name), PrintColor.GREEN)
+        os.chdir(project_dir)
+        os.system('git {0}'.format(Command.PUSH.value))
 
 
-def checkout():
-    pass
+def checkout(target_branch):
+    target_path = get_parent_dir()
+    for project_name in manifest.projects.keys():
+        project_dir = os.path.join(target_path, project_name)
+        check_project_exist(project_dir, project_name)
+        os.chdir(project_dir)
+        os.system('git {0} {1}'.format(Command.CHECKOUT.value, target_branch))
 
 
 def status():
-    # 上一级目录
-    target_path = os.path.abspath(os.path.join(os.getcwd(), "../"))
+    target_path = get_parent_dir()
     for project_name in manifest.projects.keys():
         project_dir = os.path.join(target_path, project_name)
-        if not os.path.exists(project_dir):
-            print_with_color('Project `{0}` is not exist, you may need to sync projects'.format(project_name),
-                             PrintColor.RED)
-            sys.exit(-1)
+        check_project_exist(project_dir, project_name)
         os.chdir(project_dir)
         r = os.popen('git status -s')
         lines = r.read().splitlines(False)
@@ -142,7 +164,8 @@ def status():
             msg = None
             for line in lines2:
                 if line.find('All conflicts fixed but you are still merging') != -1:
-                    msg = ('Project {0} need to commit (All conflicts fixed but you are still merging)'.format(project_name))
+                    msg = ('Project {0} need to commit (All conflicts fixed but you are still merging)'.format(
+                        project_name))
                 if line.find('use "git pull"') != -1:
                     msg = ('Project {0} need to pull'.format(project_name))
                 elif line.find('use "git push"') != -1:
@@ -161,15 +184,11 @@ def status():
 
 
 def branch():
-    # 上一级目录
-    target_path = os.path.abspath(os.path.join(os.getcwd(), "../"))
+    target_path = get_parent_dir()
     branch_map = {}
     for project_name in manifest.projects.keys():
         project_dir = os.path.join(target_path, project_name)
-        if not os.path.exists(project_dir):
-            print_with_color('Project `{0}` is not exist, you may need to sync projects'.format(project_name),
-                             PrintColor.RED)
-            sys.exit(-1)
+        check_project_exist(project_dir, project_name)
         os.chdir(project_dir)
         r = os.popen('git branch')
         lines = r.read().splitlines(False)
@@ -191,11 +210,83 @@ def branch():
                 print_with_color('   {0} projects in {1}'.format(branch_map[name], name), PrintColor.GREEN)
 
 
+def merge(source_branch):
+    target_path = get_parent_dir()
+    for project_name in manifest.projects.keys():
+        project_dir = os.path.join(target_path, project_name)
+        check_project_exist(project_dir, project_name)
+        os.chdir(project_dir)
+        os.system('git {0} {1}'.format(Command.MERGE.value, source_branch))
+
+
+def execute_cfb(branch_name):
+    # 批量新建
+    target_path = get_parent_dir()
+    for project_name in manifest.projects.keys():
+        project_dir = os.path.join(target_path, project_name)
+        os.chdir(project_dir)
+        os.system('git checkout -b {0}'.format(branch_name))
+
+    # 工作目录切换到 manifest 所在的目录
+    os.chdir(manifest_dir)
+    os.system('git checkout -b {0}'.format(branch_name))
+
+    # 修改 branch
+    element_tree = manifest_tree()
+    root = element_tree.getroot()
+    config = root.find('config')
+    config.set('branch', branch_name)
+    element_tree.write(os.path.abspath(MANIFEST_NAME))
+
+    # commit and push
+    os.system('git commit -m "update manifest branch"')
+    push()
+
+
+def execute_raw_command(raw_command):
+    target_path = get_parent_dir()
+    for project_name in manifest.projects.keys():
+        project_dir = os.path.join(target_path, project_name)
+        check_project_exist(project_dir, project_name)
+        os.chdir(project_dir)
+        os.system(raw_command)
+
+
+def repos_help():
+    txt = \
+        """
+        -h or --help:       输出帮助文档
+        -c :                对所有模块执行自定义 git 命令，例如: -c git status.
+        ------------------------------------------------------------------------
+        status              聚合展示所有模块的仓库状态
+        pull or sync        对所有模块执行 git pull
+        push                对所有模块执行 git push
+        checkout [branch]   对所有模块执行 git checkout
+        branch              聚合展示所有模块的当前分支
+        merge               对所有模块执行 git merge
+        cfb [branch] -p     创建新分支；会修改 repo_manifest.xml 里的 branch 值；-p 表示推送到远程
+        """
+    print(txt)
+
+
 def execute():
     try:
-        options, args = getopt.getopt(sys.argv[1:], "h")
+        options, args = getopt.getopt(sys.argv[1:], 'ch', ['help'])
+
+        for name, value in options:
+            if name == '-c':
+                raw_git_command = ' '.join(args)
+                execute_raw_command(raw_git_command)
+                return
+            elif name in ('-h', '--help'):
+                repos_help()
+                return
+            else:
+                print_with_color('error: unknown switch "{0}"'.format(name))
+                return
+
         for arg in args:
-            if arg == Command.PULL.value:
+            if arg == Command.PULL.value or arg == 'sync':
                 pull()
                 break
             elif arg == Command.PUSH.value:
@@ -208,15 +299,42 @@ def execute():
                 status()
                 break
             elif arg == Command.CHECKOUT.value:
-                checkout()
+                if len(args) > 1:
+                    target_branch = args[1]
+                    checkout(target_branch)
+                else:
+                    print_with_color('err: git checkout command must contain target branch', PrintColor.RED)
                 break
+            elif arg == Command.MERGE.value:
+                if len(args) > 1:
+                    source_branch = args[1]
+                    merge(source_branch)
+                else:
+                    print_with_color('err: git merge command must contain source branch', PrintColor.RED)
+                break
+            elif arg == 'cfb':
+                if len(args) > 1:
+                    new_branch = args[1]
+                    execute_cfb(new_branch)
+                else:
+                    print_with_color('err: cfb command must contain new branch name', PrintColor.RED)
+                break
+            else:
+                print_with_color("err: unsupported command '{0}', see 'python repos.py -h or --help'".format(arg),
+                                 PrintColor.RED)
     except getopt.GetoptError as err:
-        print_with_color(err, PrintColor.RED)
+        print_with_color("{0}, see 'python repos.py -h or --help'".format(err), PrintColor.RED)
         sys.exit(-1)
+
+
+def init():
+    global manifest_dir
+    manifest_dir = os.getcwd()
 
 
 def main():
     signal.signal(signal.SIGINT, signal_handler)
+    init()
     parse_manifest()
     execute()
 
