@@ -284,11 +284,11 @@ def repos_help():
         ------------------------------------------------------------------------
         status              聚合展示所有模块的仓库状态
         pull or sync        对所有模块执行 git pull
-        push                对所有模块执行 git push
+        push [-u]           对所有模块执行 git push，如果 -u 则执行 git push -u remote branch
         checkout [branch]   对所有模块执行 git checkout
         branch              聚合展示所有模块的当前分支
         merge               对所有模块执行 git merge
-        cfb [branch] -p     创建新分支；会修改 repo_manifest.xml 里的 branch 值；-p 表示推送到远程
+        cfb [branch][-p]     创建新分支；会修改 repo_manifest.xml 里的 branch 值；-p 表示推送到远程
         """
     print(txt)
 
@@ -314,7 +314,7 @@ def execute():
                 pull()
                 break
             elif arg == Command.PUSH.value:
-                push()
+                push('-u' in args)
                 break
             elif arg == Command.BRANCH.value:
                 branch()
