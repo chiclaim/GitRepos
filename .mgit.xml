@@ -1,0 +1,22 @@
+<setting curProject="login">
+
+    <project name="login" path="/home/jianglei/AndroidStudioProjects/login">
+        <module>
+            <name>Manifest</name>
+            <initBranch>master</initBranch>
+            <workBranch>master</workBranch>
+            <git>git@github.com:chiclaim/Manifest.git</git>
+        </module>
+        <module>
+            <name>MRouter2</name>
+            <initBranch>master</initBranch>
+            <workBranch>master</workBranch>
+            <git>git@github.com:chiclaim/MRouter.git</git>
+        </module>
+    </project>
+
+    <config>
+        <enter>false</enter>
+        <interactive>false</interactive>
+    </config>
+</setting>
