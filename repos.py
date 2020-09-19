@@ -274,6 +274,19 @@ def execute_raw_command(raw_command):
         os.system(raw_command)
 
 
+# 删除分支
+def delete_branch(branch_name, is_remote=False):
+    target_path = get_parent_dir()
+    for project_name in manifest.projects.keys():
+        project_dir = os.path.join(target_path, project_name)
+        check_project_exist(project_dir, project_name)
+        os.chdir(project_dir)
+        if is_remote:
+            os.system('git push {0} --delete {1}'.format(get_remote(project_dir), branch_name))
+        else:
+            os.system('git branch -d {0}'.format(branch_name))
+
+
 def repos_help():
     txt = \
         """
@@ -293,7 +306,7 @@ def repos_help():
 
 def execute():
     try:
-        options, args = getopt.getopt(sys.argv[1:], 'ch', ['help'])
+        options, args = getopt.getopt(sys.argv[1:], 'chd:r:', ['help'])
 
         for name, value in options:
             if name == '-c':
@@ -303,6 +316,11 @@ def execute():
             elif name in ('-h', '--help'):
                 repos_help()
                 return
+            elif name == '-d':
+                delete_branch(value)
+                return
+            elif name == '-r':
+                delete_branch(value, True)
             else:
                 print_with_color('error: unknown switch "{0}"'.format(name))
                 return
@@ -345,7 +363,7 @@ def execute():
                 print_with_color("err: unsupported command '{0}', see 'python repos.py -h or --help'".format(arg),
                                  PrintColor.RED)
     except getopt.GetoptError as err:
-        print_with_color("{0}, see 'python repos.py -h or --help'".format(err), PrintColor.RED)
+        print_with_color("err: {0}, see 'python repos.py -h or --help'".format(err), PrintColor.RED)
         sys.exit(-1)
 
 
