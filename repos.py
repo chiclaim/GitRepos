@@ -161,7 +161,6 @@ def push(has_option=False):
             remote = get_remote(project_dir)
             actual_branch = get_actual_branch(project_dir)
             push_option = ' -u {0} {1}'.format(remote, actual_branch)
-            print(push_option)
 
         os.system('git {0} {1}'.format(Command.PUSH.value, push_option))
 
