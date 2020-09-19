@@ -1,6 +1,7 @@
 import signal
 import sys
 import os
+import getopt
 from enum import Enum
 from xml.etree import ElementTree as eTree
 
@@ -13,22 +14,27 @@ class Manifest:
 
 
 class PrintColor:
-    HEADER = '\033[95m'
+    WHITE = '\033[97m'
+    # 蓝绿色
+    CYAN = '\033[96m'
+    # 品红
+    MAGENTA = '\033[95m'
     BLUE = '\033[94m'
-    WARNING = '\033[93m'
+    YELLOW = '\033[93m'
     GREEN = '\033[92m'
-    FAIL = '\033[91m'
+    RED = '\033[91m'
+    GRAY = '\033[90m'
     END = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
 
 class Command(Enum):
-    PULL = 'git pull'
-    PUSH = 'git push'
-    BRANCH = 'git branch'
-    CHECKOUT = 'status checkout'
-    STATUS = 'git status'
+    PULL = 'pull'
+    PUSH = 'push'
+    BRANCH = 'branch'
+    CHECKOUT = 'checkout'
+    STATUS = 'status'
 
 
 manifest = Manifest()
@@ -37,18 +43,18 @@ manifest = Manifest()
 # 输出带有颜色的日志
 def print_with_color(msg, *print_colors):
     pc = ''.join(print_colors)
-    print(pc, msg, PrintColor.END, flush=True)
+    print('{0}{1}{2}'.format(pc, msg, PrintColor.END), flush=True)
 
 
 def check_none(element, err_msg):
     if element is None:
-        print_with_color(err_msg, PrintColor.FAIL)
+        print_with_color(err_msg, PrintColor.RED)
         sys.exit(-1)
 
 
 def check_empty(value, err_msg):
     if not value.strip():
-        print_with_color(err_msg, PrintColor.FAIL)
+        print_with_color(err_msg, PrintColor.RED)
         sys.exit(-1)
 
 
@@ -67,7 +73,7 @@ def manifest_tree():
         try:
             return eTree.parse(manifest_file_path)
         except eTree.ParseError:
-            print_with_color("{0} 文件格式有误".format(MANIFEST_NAME), PrintColor.FAIL)
+            print_with_color("{0} 文件格式有误".format(MANIFEST_NAME), PrintColor.RED)
             sys.exit(-1)
 
 
@@ -79,39 +85,126 @@ def parse_manifest():
     config = root.find('config')
     check_none(config, 'config 子节点未找到')
 
-    branch = config.get('branch')
-    check_none(branch, 'config 节点 branch 属性未设置')
-    check_empty(branch, 'branch 不能为空')
-
-    manifest.branch = branch
+    manifest.branch = config.get('branch')
+    check_none(manifest.branch, 'config 节点 branch 属性未设置')
+    check_empty(manifest.branch, 'branch 不能为空')
 
     project_list = root.findall('project')
     for project in project_list:
         manifest.projects[project.get('name')] = project.get('git')
 
 
-def execute_cmd(command: Command):
-    for key in manifest.projects.keys():
-        value = manifest.projects[key]
-        target_path = os.path.abspath(os.path.join(os.getcwd(), "../"))
-        project_dir = os.path.join(target_path, key)
-        # 如果项目不存在，则 git clone
-        if command == Command.PULL:
-            # 项目文件夹不存在
-            if not os.path.exists(project_dir):
-                print("不存在" + project_dir)
-                os.chdir(target_path)
-                os.system('git clone -b {0} {1} {2}'.format(manifest.branch, value, key))
-            elif os.path.exists(os.path.join(project_dir, '.git')):
-                # git pull
-                os.chdir(project_dir)
-                os.system(command.value)
+def pull():
+    # 上一级目录
+    target_path = os.path.abspath(os.path.join(os.getcwd(), "../"))
+    for project_name in manifest.projects.keys():
+        git_url = manifest.projects[project_name]
+        project_dir = os.path.join(target_path, project_name)
+        # 项目文件夹不存在
+        if not os.path.exists(project_dir):
+            print_with_color('{0:-^50}'.format(project_name), PrintColor.GREEN)
+            os.chdir(target_path)
+            os.system('git clone -b {0} {1} {2}'.format(manifest.branch, git_url, project_name))
+        elif os.path.exists(os.path.join(project_dir, '.git')):
+            # git pull
+            print_with_color('{0:-^50}'.format(project_name), PrintColor.GREEN)
+            os.chdir(project_dir)
+            os.system('git {0}'.format(Command.PULL.value))
+        else:
+            print_with_color('{0:-^50}'.format(project_name), PrintColor.GREEN)
+            print_with_color('目标文件夹 {0} 已经存在，并且不为空'.format(project_name), PrintColor.RED)
+            sys.exit(-1)
+
+
+def push():
+    pass
+
+
+def checkout():
+    pass
+
+
+def status():
+    # 上一级目录
+    target_path = os.path.abspath(os.path.join(os.getcwd(), "../"))
+    for project_name in manifest.projects.keys():
+        project_dir = os.path.join(target_path, project_name)
+        if not os.path.exists(project_dir):
+            print_with_color('Project `{0}` is not exist, you may need to sync projects'.format(project_name),
+                             PrintColor.RED)
+            sys.exit(-1)
+        os.chdir(project_dir)
+        r = os.popen('git status -s')
+        lines = r.read().splitlines(False)
+        if len(lines) == 0:
+            print_with_color('Project {0} is clean'.format(project_name), PrintColor.GRAY)
+            continue
+        else:
+            print_with_color('Project {0}/'.format(project_name), PrintColor.YELLOW)
+        for line in lines:
+            status_file = line.rsplit(" ", 1)
+            print('     {0}{1}{2} {3}'.format(PrintColor.RED, status_file[0], PrintColor.END, status_file[1]))
+
+
+def branch():
+    # 上一级目录
+    target_path = os.path.abspath(os.path.join(os.getcwd(), "../"))
+    branch_map = {}
+    for project_name in manifest.projects.keys():
+        project_dir = os.path.join(target_path, project_name)
+        if not os.path.exists(project_dir):
+            print_with_color('Project `{0}` is not exist, you may need to sync projects'.format(project_name),
+                             PrintColor.RED)
+            sys.exit(-1)
+        os.chdir(project_dir)
+        r = os.popen('git branch')
+        lines = r.read().splitlines(False)
+        for line in lines:
+            if line.startswith('*'):
+                current_branch = line[2:]
+                if current_branch in branch_map:
+                    branch_map[current_branch] = branch_map[current_branch] + 1
+                else:
+                    branch_map[current_branch] = 1
+
+    if len(branch_map) > 0:
+        if len(branch_map) == 1:
+            print('all projects in branch', end=' ')
+            print_with_color(next(iter(branch_map)), PrintColor.GREEN)
+        else:
+            print_with_color('There are {0} projects:'.format(len(manifest.projects)), PrintColor.YELLOW)
+            for name in branch_map:
+                print_with_color('   {0} projects in {1}'.format(branch_map[name], name), PrintColor.GREEN)
+
+
+def execute():
+    try:
+        options, args = getopt.getopt(sys.argv[1:], "h")
+        for arg in args:
+            if arg == Command.PULL.value:
+                pull()
+                break
+            elif arg == Command.PUSH.value:
+                push()
+                break
+            elif arg == Command.BRANCH.value:
+                branch()
+                break
+            elif arg == Command.STATUS.value:
+                status()
+                break
+            elif arg == Command.CHECKOUT.value:
+                checkout()
+                break
+    except getopt.GetoptError as err:
+        print_with_color(err, PrintColor.RED)
+        sys.exit(-1)
 
 
 def main():
     signal.signal(signal.SIGINT, signal_handler)
     parse_manifest()
-    execute_cmd(Command.PULL)
+    execute()
 
 
 if __name__ == '__main__':
