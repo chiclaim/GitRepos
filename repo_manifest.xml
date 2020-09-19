@@ -1,6 +1,6 @@
 <manifest>
 
-    <config branch="dev4" />
+    <config branch="dev5" />
 
     <project git="git@github.com:chiclaim/Manifest.git" name="Manifest1" />
     <project git="git@github.com:chiclaim/Manifest.git" name="Manifest2" />
