@@ -251,10 +251,6 @@ def execute_cfb(branch_name, need_push=False):
         os.chdir(project_dir)
         os.system('git checkout -b {0}'.format(branch_name))
 
-    # 工作目录切换到 manifest 所在的目录
-    os.chdir(manifest_dir)
-    os.system('git checkout -b {0}'.format(branch_name))
-
     # 修改 branch
     element_tree = manifest_tree()
     root = element_tree.getroot()
