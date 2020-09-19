@@ -137,7 +137,21 @@ def status():
         r = os.popen('git status -s')
         lines = r.read().splitlines(False)
         if len(lines) == 0:
-            print_with_color('Project {0} is clean'.format(project_name), PrintColor.GRAY)
+            r2 = os.popen('git status')
+            lines2 = r2.read().splitlines(False)
+            msg = None
+            for line in lines2:
+                if line.find('All conflicts fixed but you are still merging') != -1:
+                    msg = ('Project {0} need to commit (All conflicts fixed but you are still merging)'.format(project_name))
+                if line.find('use "git pull"') != -1:
+                    msg = ('Project {0} need to pull'.format(project_name))
+                elif line.find('use "git push"') != -1:
+                    msg = ('Project {0} need to push'.format(project_name))
+                # other situations
+            if msg is None:
+                print_with_color('Project {0} is clean'.format(project_name), PrintColor.GRAY)
+            else:
+                print_with_color(msg, PrintColor.GREEN)
             continue
         else:
             print_with_color('Project {0}/'.format(project_name), PrintColor.YELLOW)
