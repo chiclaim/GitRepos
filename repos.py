@@ -110,6 +110,24 @@ def get_parent_dir():
     return os.path.dirname(manifest_dir)
 
 
+# 获取参考的展示分支
+def get_actual_branch(project_dir):
+    os.chdir(project_dir)
+    r = os.popen('git branch')
+    lines = r.read().splitlines(False)
+    for line in lines:
+        if line.startswith('*'):
+            return line[2:]
+
+
+# 获取 remote, 例如 origin
+def get_remote(project_dir):
+    os.chdir(project_dir)
+    r = os.popen('git remote')
+    lines = r.read().splitlines(False)
+    return lines[0]
+
+
 def pull():
     target_path = get_parent_dir()
     for project_name in manifest.projects.keys():
@@ -131,14 +149,21 @@ def pull():
             sys.exit(-1)
 
 
-def push():
+def push(has_option=False):
     target_path = get_parent_dir()
     for project_name in manifest.projects.keys():
         project_dir = os.path.join(target_path, project_name)
         check_project_exist(project_dir, project_name)
         print_with_color('{0:-^50}'.format(project_name), PrintColor.GREEN)
         os.chdir(project_dir)
-        os.system('git {0}'.format(Command.PUSH.value))
+        push_option = ''
+        if has_option:
+            remote = get_remote(project_dir)
+            actual_branch = get_actual_branch(project_dir)
+            push_option = ' -u {0} {1}'.format(remote, actual_branch)
+            print(push_option)
+
+        os.system('git {0} {1}'.format(Command.PUSH.value, push_option))
 
 
 def checkout(target_branch):
@@ -240,7 +265,8 @@ def execute_cfb(branch_name):
 
     # commit and push
     os.system('git commit -m "update manifest branch"')
-    push()
+
+    push(True)
 
 
 def execute_raw_command(raw_command):
