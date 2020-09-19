@@ -264,7 +264,9 @@ def execute_cfb(branch_name, need_push=False):
 
     # commit and push
     os.system('git commit -m "update manifest branch" {0}'.format(MANIFEST_NAME))
-    push(need_push)
+
+    if need_push:
+        push(True)
 
 
 def execute_raw_command(raw_command):
@@ -357,6 +359,7 @@ def init():
 
 
 def main():
+    # Ctrl+C 会触发 SIGINT 信号
     signal.signal(signal.SIGINT, signal_handler)
     init()
     parse_manifest()
