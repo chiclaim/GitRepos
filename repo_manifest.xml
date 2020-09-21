@@ -1,9 +1,0 @@
-<manifest>
-
-    <config branch="dev5" />
-
-    <project git="git@github.com:chiclaim/Manifest.git" name="Manifest1" />
-    <project git="git@github.com:chiclaim/Manifest.git" name="Manifest2" />
-    <project git="git@github.com:chiclaim/Manifest.git" name="Manifest3" />
-    <project git="git@github.com:chiclaim/Repos.git" name="Repos" />
-</manifest>

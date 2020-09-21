@@ -6,7 +6,7 @@ import string
 from enum import Enum
 from xml.etree import ElementTree as eTree
 
-MANIFEST_NAME = "repo_manifest.xml"
+MANIFEST_NAME = "repos_manifest.xml"
 manifest_dir: string
 
 
@@ -87,11 +87,11 @@ def parse_manifest():
     root = element_tree.getroot()
 
     config = root.find('config')
-    check_none(config, 'config 子节点未找到')
+    check_none(config, 'err: config 子节点未找到')
 
     manifest.branch = config.get('branch')
-    check_none(manifest.branch, 'config 节点 branch 属性未设置')
-    check_empty(manifest.branch, 'branch 不能为空')
+    check_none(manifest.branch, 'err: config 节点 branch 属性未设置')
+    check_empty(manifest.branch, 'err: branch 不能为空')
 
     project_list = root.findall('project')
     for project in project_list:
@@ -100,7 +100,7 @@ def parse_manifest():
 
 def check_project_exist(project_dir, project_name):
     if not os.path.exists(project_dir):
-        print_with_color('Project `{0}` is not exist, you may need to sync projects'.format(project_name),
+        print_with_color('err: project `{0}` is not exist, you may need to sync projects'.format(project_name),
                          PrintColor.RED)
         sys.exit(-1)
 
@@ -301,7 +301,7 @@ def repos_help():
         checkout [branch]   对所有模块执行 git checkout
         branch              聚合展示所有模块的当前分支
         merge               对所有模块执行 git merge
-        cfb [branch][-p]    统一创建 feature 分支. 先修改 repo_manifest.xml 里的 branch 值，然后 commit, -p 表示推送到远程
+        cfb [branch][-p]    统一创建 feature 分支. 先修改 repos_manifest.xml 里的 branch 值，然后 commit, -p 表示推送到远程
         """
     print(txt)
 
