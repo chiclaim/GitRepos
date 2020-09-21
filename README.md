@@ -16,7 +16,7 @@
 
 - python repos.py sync
 
-    对所有模块执行 git pull
+    同步所有模块代码
 
 - python repos.py pull
 
@@ -46,7 +46,7 @@
 
     帮助文档
 
-- python repos.py -c
+- python repos.py -c `git_command`
 
     对所有模块执行自定义 git 命令，例如: -c git status.
 
