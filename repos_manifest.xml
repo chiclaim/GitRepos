@@ -1,57 +1,9 @@
 <manifest>
 
-    <config branch="develop" />
+    <config branch="master" />
 
-    <project name="TDFWidgetModule" git="git@git.2dfire.net:background_manage_android/TDFWidgetModule.git" />
-    <project name="TDFTemplateModule" git="git@git.2dfire.net:background_manage_new/TDFTemplateModule.git" />
-    <project name="ManagerCommonUtils" git="git@git.2dfire.net:background_manage_android/ManagerCommonUtils.git" />
-    <project name="ManagerCommonPath" git="git@git.2dfire.net:background_manage_android/ManagerCommonPath.git" />
-    <project name="TDFCommonModule" git="git@git.2dfire.net:background_manage_android/TDFCommonModule.git"/>
-    <project name="ManagerChargeModule" git="git@git.2dfire.net:background_manage_android/ManagerChargeModule.git"/>
-    <project name="TDFOpenShopModule" git="git@git.2dfire.net:tdf_module_android/TDFOpenShopModule.git"/>
-    <project name="FireWaiterModule" git="git@git.2dfire.net:2ye-android/fire_waiter_android.git"/>
-    <project name="GoodsModule" git="git@git.2dfire.net:background_manage_android/ManagerGoods.git"/>
-    <project name="LoginModule" git="git@git.2dfire.net:tdf_module_android/TDFLoginModule.git"/>
-    <project name="ManagerBase" git="git@git.2dfire.net:background_manage_android/ManagerBase.git"/>
-    <project name="TDFMessageModule" git="git@git.2dfire.net:tdf_module_android/TDFMessageModule.git"/>
-    <project name="base_temp" git="git@git.2dfire.net:background_manage_android/base_temp.git"/>
-    <project name="ManagerWaiterSetting" git="git@git.2dfire.net:background_manage_android/ManagerWaiterSettingModule.git"/>
-    <project name="ManagerChainSettingModule" git="git@git.2dfire.net:background_manage_android/ManagerChainSettingModule.git"/>
-    <project name="ManagerFinancePayModule" git="git@git.2dfire.net:background_manage_android/ManagerFinancePayModule.git"/>
-    <project name="ManagerDataModule" git="git@git.2dfire.net:background_manage_android/ManagerDataModule.git"/>
-    <project name="ManagerMemberModule" git="git@git.2dfire.net:background_manage_android/ManagerMemberModule.git"/>
-    <project name="ManagerCommonModule" git="git@git.2dfire.net:background_manage_android/ManagerCommonModule.git"/>
-    <project name="ManagerCounterRankSettingModule" git="git@git.2dfire.net:background_manage_android/ManagerCounterRankSettingModule.git"/>
-    <project name="ManagerCommonAdpater" git="git@git.2dfire.net:background_manage_android/ManagerCommonAdpater.git"/>
-    <project name="ManagerMember_koubei" git="git@git.2dfire.net:background_manage_android/ManagerMember_koubei.git"/>
-    <project name="ManagerRetailModule" git="git@git.2dfire.net:background_manage_new/ManagerRetailModule.git"/>
-    <project name="ManagerWidget" git="git@git.2dfire.net:background_manage_android/ManagerWidget.git"/>
-    <project name="TDFComponent" git="git@git.2dfire.net:rest_android/TDFComponent.git"/>
-    <project name="ManagerCelebiBase" git="git@git.2dfire.net:rest_android/ManagerCelebiBase.git"/>
-    <project name="TDFCelebiAction" git="git@git.2dfire.net:rest_android/TDFCelebiAction.git"/>
-    <project name="TDFCelebiCore" git="git@git.2dfire.net:rest_android/TDFCelebiCore.git"/>
-    <project name="TDFCelebiAndroid" git="git@git.2dfire.net:rest_android/TDFCelebiAndroid.git"/>
-    <project name="TDFCelebiParser" git="git@git.2dfire.net:rest_android/TDFCelebiParser.git"/>
-    <project name="ManagerPageFrame" git="git@git.2dfire.net:rest_android/ManagerPageFrame.git"/>
-    <project name="ManagerItemHolder" git="git@git.2dfire.net:rest_android/ManagerItemHolder.git"/>
-    <project name="ManagerHomeModule" git="git@git.2dfire.net:background_manage_new/ManagerHomeModule.git"/>
-    <project name="ManagerCheckModule" git="git@git.2dfire.net:background_manage_new/ManagerCheckModule.git"/>
-    <project name="ManagerKoubeiModule" git="git@git.2dfire.net:background_manage_android/ManagerKoubeiModule.git"/>
-    <project name="TDFCelebiVersionManage" git="git@git.2dfire.net:rest_android/TDFCelebiVersionManage.git"/>
-    <project name="RetailInventoryModule" git="git@git.2dfire.net:background_manage_new/RetailInventoryModule.git"/>
-    <project name="ManagerWebViewModule" git="git@git.2dfire.net:background_manage_new/ManagerWebViewModule.git"/>
-    <project name="TDFMenuRecordModule" git="git@git.2dfire.net:background_manage_new/TDFMenuRecordModule.git"/>
-    <project name="ManagerMall" git="git@git.2dfire.net:background_manage_new/ManagerMallModule.git"/>
-    <project name="TDFBackDoorModule" git="git@git.2dfire.net:background_manage_new/TDFBackDoorModule.git"/>
-    <project name="RetailWidget" git="git@git.2dfire.net:background_manage_new/RetailWidget.git"/>
-    <project name="TDFEpayAccountModule" git="git@git.2dfire.net:background_manage_new/TDFEpayAccountModule.git"/>
-    <project name="ManagerIntegralModule" git="git@git.2dfire.net:background_manage_new/ManagerIntegralModule.git"/>
-    <project name="TDFQRCodeModule" git="git@git.2dfire.net:background_manage_new/TDFQRCodeModule.git"/>
-    <project name="ManagerRetailMicroShop" git="git@git.2dfire.net:background_manage_new/ManagerRetailMicroShop.git"/>
-    <project name="ManagerRetailExpress" git="git@git.2dfire.net:background_manage_new/ManagerRetailExpress.git"/>
-    <project name="ManagerNavigation" git="git@git.2dfire.net:background_manage_android/ManagerNavigation.git"/>
-    <project name="ManagerFireGroupModule" git="git@git.2dfire.net:background_manage_new/ManagerFireGroupModule.git"/>
-    <project name="ManagerFireTogetherModule" git="git@git.2dfire.net:background_manage_new/managerfiretogethermodule.git"/>
-    <project name="ManagerFlutterWrapperModule" git="git@git.2dfire.net:background_manage_android/managerflutterwrapper.git"/>
-    <project name="ManagerApp" git="git@git.2dfire.net:background_manage_new/background-rest_phone.git"/>
+    <project name="AndroidAll" git="git@github.com:chiclaim/AndroidAll.git" />
+    <project name="MRouter" git="git@github.com:chiclaim/MRouter.git" />
+    <project name="Repos" git="git@github.com:chiclaim/Repos.git" />
+
 </manifest>
