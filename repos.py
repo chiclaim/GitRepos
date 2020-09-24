@@ -245,13 +245,6 @@ def execute_cfb(branch_name, need_push=False):
         os.chdir(project_dir)
         os.system('git checkout -b {0}'.format(branch_name))
 
-    # 修改 branch
-    element_tree = manifest_tree()
-    root = element_tree.getroot()
-    config = root.find('config')
-    config.set('branch', branch_name)
-    element_tree.write(os.path.abspath(MANIFEST_NAME))
-
     # commit and push
     os.system('git commit -m "update manifest branch" {0}'.format(MANIFEST_NAME))
 
