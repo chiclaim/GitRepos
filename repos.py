@@ -318,8 +318,6 @@ def execute():
             if arg == Command.PULL.value or arg == 'sync':
                 # -b branch_name -d custom_dir
                 command_d = '-d'
-                command_b = '-b'
-
                 custom_dir = None
                 if command_d in args:
                     d_index = args.index(command_d)
@@ -331,20 +329,20 @@ def execute():
                         sys.exit(-1)
 
                 final_branch = None
-                if command_b in args:
-                    b_index = args.index(command_b)
-                    if len(args) > b_index + 1:
-                        final_branch = args[b_index + 1]
-                    else:
-                        print_with_color('err: command -b must set branch_name, like: -b master', PrintColor.RED)
-                        sys.exit(-1)
+                # 判断当前文件夹是否是 git 目录，优先使用此仓库 branch
+                current_dir = os.path.abspath(os.path.dirname(__file__))
+                if os.path.exists(os.path.join(current_dir, '.git')):
+                    final_branch = get_actual_branch(current_dir)
 
-                # 如果用户没有指定branch，则使用当前脚本所在目录 git 分支，如果脚本所在目录不是 git 仓库，则默认使用 master
+                command_b = '-b'
                 if final_branch is None:
-                    # 判断当前文件夹是否是 git 目录
-                    current_dir = os.path.abspath(os.path.dirname(__file__))
-                    if os.path.exists(os.path.join(current_dir, '.git')):
-                        final_branch = get_actual_branch(current_dir)
+                    if command_b in args:
+                        b_index = args.index(command_b)
+                        if len(args) > b_index + 1:
+                            final_branch = args[b_index + 1]
+                        else:
+                            print_with_color('err: command -b must set branch_name, like: -b master', PrintColor.RED)
+                            sys.exit(-1)
 
                 pull(custom_dir, final_branch)
                 break
