@@ -2,8 +2,8 @@
 
     <config branch="master" />
 
-    <project name="AndroidAll" git="git@github.com:chiclaim/AndroidAll.git" />
-    <project name="MRouter" git="git@github.com:chiclaim/MRouter.git" />
-    <project name="Repos" git="git@github.com:chiclaim/Repos.git" />
+    <project name="Repos3" git="git@github.com:chiclaim/Repos.git" />
+    <project name="Repos2" git="git@github.com:chiclaim/Repos.git" />
+    <project name="Repos1" git="git@github.com:chiclaim/Repos.git" />
 
 </manifest>

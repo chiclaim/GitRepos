@@ -128,16 +128,16 @@ def get_remote(project_dir):
     return lines[0]
 
 
-def pull(target_dir=None):
+def pull(custom_dir=None):
     # 如果用户自定了目录，则使用用户自定义的目录
-    target_path = get_parent_dir() if target_dir is None else target_dir
+    target_path = get_parent_dir() if custom_dir is None else custom_dir
     for project_name in manifest.projects.keys():
         git_url = manifest.projects[project_name]
         project_dir = os.path.join(target_path, project_name)
         # 项目文件夹不存在
         if not os.path.exists(project_dir):
-            print_with_color('{0:-^50}'.format(project_name), PrintColor.GREEN)
             os.chdir(target_path)
+            print_with_color('{0:-^80}'.format(project_dir), PrintColor.GREEN)
             os.system('git clone -b {0} {1} {2}'.format(manifest.branch, git_url, project_name))
         elif os.path.exists(os.path.join(project_dir, '.git')):
             # git pull
@@ -330,10 +330,10 @@ def execute():
 
         for arg in args:
             if arg == Command.PULL.value or arg == 'sync':
-                target_dir = None
+                custom_dir = None
                 if len(args) > 2:
-                    target_dir = args[2]
-                pull(target_dir)
+                    custom_dir = args[2]
+                pull(custom_dir)
                 break
             elif arg == Command.PUSH.value:
                 push('-u' in args)
