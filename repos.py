@@ -110,7 +110,7 @@ def get_parent_dir():
     return os.path.dirname(manifest_dir)
 
 
-# 获取参考的展示分支
+# 获取仓库的当前分支
 def get_actual_branch(project_dir):
     os.chdir(project_dir)
     r = os.popen('git branch')
@@ -128,8 +128,9 @@ def get_remote(project_dir):
     return lines[0]
 
 
-def pull():
-    target_path = get_parent_dir()
+def pull(target_dir=None):
+    # 如果用户自定了目录，则使用用户自定义的目录
+    target_path = get_parent_dir() if target_dir is None else target_dir
     for project_name in manifest.projects.keys():
         git_url = manifest.projects[project_name]
         project_dir = os.path.join(target_path, project_name)
@@ -329,7 +330,10 @@ def execute():
 
         for arg in args:
             if arg == Command.PULL.value or arg == 'sync':
-                pull()
+                target_dir = None
+                if len(args) > 2:
+                    target_dir = args[2]
+                pull(target_dir)
                 break
             elif arg == Command.PUSH.value:
                 push('-u' in args)
