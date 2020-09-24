@@ -67,7 +67,7 @@ python repos.py branch
 然后你想创建一个 feature 分支，可以使用：
 
 ```
-python repos.py cfb `new_branch_name` -p
+python repos.py cfb new_branch_name -p
 ```
 
 然后你可能做了一些修改，添加了一些文件，你可以使用 status 命令，看看你都修改了哪些模块，status命令会清晰的展示，哪些模块需要push，哪些模块没有提交：
@@ -82,9 +82,10 @@ python repos.py status
 python repos.py push
 ```
 
-## 脚本不在项目主工程里面，只支持同步代码
+## 脚本不在项目主工程里面(只支持同步代码)
 
 同步代码，可以自定义代码输出路径例如：`python repos.py sync -d "C:\xxx"` 路径为绝对路径
+
 与此同时，还可以指定 branch 例如：`python3 repos.py sync -d "C:\Program Files (x86)" -b master`
 
 ## 常用命令
