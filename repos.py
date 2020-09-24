@@ -11,7 +11,6 @@ manifest_dir: string
 
 
 class Manifest:
-    branch = ''
     projects = {}
 
 
@@ -86,13 +85,6 @@ def parse_manifest():
     element_tree = manifest_tree()
     root = element_tree.getroot()
 
-    config = root.find('config')
-    check_none(config, 'err: config 子节点未找到')
-
-    manifest.branch = config.get('branch')
-    check_none(manifest.branch, 'err: config 节点 branch 属性未设置')
-    check_empty(manifest.branch, 'err: branch 不能为空')
-
     project_list = root.findall('project')
     for project in project_list:
         manifest.projects[project.get('name')] = project.get('git')
@@ -128,7 +120,7 @@ def get_remote(project_dir):
     return lines[0]
 
 
-def pull(custom_dir=None):
+def pull(custom_dir=None, branch_name='master'):
     # 如果用户自定了目录，则使用用户自定义的目录
     target_path = get_parent_dir() if custom_dir is None else custom_dir
     for project_name in manifest.projects.keys():
@@ -138,7 +130,7 @@ def pull(custom_dir=None):
         if not os.path.exists(project_dir):
             os.chdir(target_path)
             print_with_color('{0:-^80}'.format(project_dir), PrintColor.GREEN)
-            os.system('git clone -b {0} {1} {2}'.format(manifest.branch, git_url, project_name))
+            os.system('git clone -b {0} {1} {2}'.format(branch_name, git_url, project_name))
         elif os.path.exists(os.path.join(project_dir, '.git')):
             # git pull
             print_with_color('{0:-^50}'.format(project_name), PrintColor.GREEN)
@@ -330,10 +322,36 @@ def execute():
 
         for arg in args:
             if arg == Command.PULL.value or arg == 'sync':
+                # -b branch_name -d custom_dir
+                command_d = '-d'
+                command_b = '-b'
+
                 custom_dir = None
-                if len(args) > 2:
-                    custom_dir = args[2]
-                pull(custom_dir)
+                if command_d in args:
+                    d_index = args.index(command_d)
+                    if len(args) > d_index + 1:
+                        custom_dir = args[d_index + 1]
+                    else:
+                        print_with_color('err: command -d must set directory, like: -d "C:\\Program Files (x86)"', PrintColor.RED)
+                        sys.exit(-1)
+
+                final_branch = None
+                if command_b in args:
+                    b_index = args.index(command_b)
+                    if len(args) > b_index + 1:
+                        final_branch = args[b_index + 1]
+                    else:
+                        print_with_color('err: command -b must set branch_name, like: -b master', PrintColor.RED)
+                        sys.exit(-1)
+
+                # 如果用户没有指定branch，则使用当前脚本所在目录 git 分支，如果脚本所在目录不是 git 仓库，则默认使用 master
+                if final_branch is None:
+                    # 判断当前文件夹是否是 git 目录
+                    current_dir = os.path.abspath(os.path.dirname(__file__))
+                    if os.path.exists(os.path.join(current_dir, '.git')):
+                        final_branch = get_actual_branch(current_dir)
+
+                pull(custom_dir, final_branch)
                 break
             elif arg == Command.PUSH.value:
                 push('-u' in args)

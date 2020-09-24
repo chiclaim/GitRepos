@@ -14,15 +14,16 @@
 
 - python repos.py cfb `new_branch_name` -p
 
-    统一创建 feature 分支，会修改 repos_manifest.xml 里的 branch 值，然后 commit，-p 表示推送到远程，没有 -p 表示只创建分支
+    统一创建 feature 分支（cfb 是 create feature branch 简称），-p 表示推送到远程，没有该选项表示创建本地分支
 
 - python repos.py sync
 
     同步所有模块代码，也可以自定义代码输出路径例如：`python repos.py sync -d "C:\xxx"` 路径为绝对路径
+    与此同时，还可以指定 branch 例如：`python3 repos.py sync -d "C:\Program Files (x86)" -b master`
 
 - python repos.py pull
 
-    对所有模块执行 git pull
+    同 `python repos.py sync`
 
 - python repos.py push
 
