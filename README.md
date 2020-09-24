@@ -10,6 +10,8 @@
 
 # 使用说明
 
+将脚本文件 repos.py 和 repos_manifest.xml 拷贝到主工程根目录，同步代码后，其他模块与主模块为同级目录。
+
 - python repos.py cfb `new_branch_name` -p
 
     统一创建 feature 分支，会修改 repos_manifest.xml 里的 branch 值，然后 commit，-p 表示推送到远程，没有 -p 表示只创建分支
@@ -61,7 +63,7 @@
 
 # TODOs
 
-- [ ] 命令输出日志，颜色高亮展示（Windows）
+- [ ] Windows 系统下命令输出日志没有颜色高亮（可以使用 git bash），Mac 和 Linux 会有颜色高亮展示
 - [ ] 分组展示当前所有模块的分支详细情况
 - [x] 聚合展示当前所有模块的分支情况，快速查看所有模块是否在统一的分支上
 - [x] 精确展示 status 日志
