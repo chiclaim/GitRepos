@@ -18,7 +18,7 @@
 
 - python repos.py sync
 
-    同步所有模块代码
+    同步所有模块代码，也可以自定义代码输出路径例如：`python repos.py sync -d "C:\xxx"`
 
 - python repos.py pull
 
