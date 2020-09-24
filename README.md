@@ -4,17 +4,66 @@
 # 背景
 - repo 繁琐问题，需要单独管理 Manifest 分支
 - repo 不能跨多个 remote
-- 简化迭代时新建分支流程，提高效率（相对于公司内部的 git 封装脚本，从 9 条命令简化到 1 条）
-- status 不精确问题（公司内部 git 封装脚本）
+- Google repo 的 status 命令输出信息过多
+- 简化迭代时新建分支流程，提高效率
 
 
 # 使用说明
 
-将脚本文件 repos.py 和 repos_manifest.xml 拷贝到主工程根目录，同步代码后，其他模块与主模块为同级目录。
+## 编辑 repos_manifest.xml
+
+将需要管理的 git 仓库 url 放在 `repos_manifest.xml` 中，如：
+
+```
+<manifest>
+    <project name="Repos3" git="git@github.com:chiclaim/Repos.git" />
+    <project name="Repos2" git="git@github.com:chiclaim/Repos.git" />
+    <project name="Repos1" git="git@github.com:chiclaim/Repos.git" />
+</manifest>
+```
+
+## 复制脚本和清单文件到你的主工程（建议）
+
+一般 iOS、Android 都是模块化开发，可以将脚本文件 `repos.py` 和 `repos_manifest.xml` 拷贝到主工程 `根目录`，然后提交。
+
+第一次同步代码时，其他仓库默认会使用当前仓库所在的分支。也可以手动指定分支：`python repos.py sync -b master`
+
+例如，你的项目名字叫做 GitHubClient，这个是你的主工程，你的代码是多模块组成的（非单工程）的。GitHubClient 这个主工程依赖其他模块。
+
+所有的仓库在 `repos_manifest.xml` 中配置：
+
+```
+<manifest>
+    <!--主工程-->
+    <project name="Repos1" git="git@github.com:chiclaim/GitHubClient.git" />
+    <!--趋势模块-->
+    <project name="Repos3" git="git@github.com:chiclaim/Trending.git" />
+    <!--用户模块-->
+    <project name="Repos2" git="git@github.com:chiclaim/User.git" />
+    <!--省略其他模块-->
+</manifest>
+```
+
+假设文件 `repos.py` 和 `repos_manifest.xml` 已经在你的 GitHubClient `根目录` 了
+
+如果是第一次拉代码，首先克隆主工程：
+
+```
+git clone -b your_branch git@github.com:chiclaim/GitHubClient.git GitHubClient
+```
+
+然后进入 GitHubClient 目录，执行如下命令，：
+
+```
+python repos.py sync -b master
+```
+
+
+## 常用命令
 
 - python repos.py cfb `new_branch_name` -p
 
-    统一创建 feature 分支（cfb 是 create feature branch 简称），-p 表示推送到远程，没有该选项表示创建本地分支
+    新的需求，我们需要统一创建 feature 分支（cfb 是 create feature branch 简称），-p 表示推送到远程，没有该选项表示创建本地分支
 
 - python repos.py sync
 
@@ -39,11 +88,11 @@
 
 - python repos.py branch
 
-    聚合展示所有模块的当前分支
+    聚合展示所有模块的当前分支（一般开发前，要确保所有的模块都在统一的分支上）
 
 - python repos.py merge `source_branch`
 
-    对所有模块执行 git merge
+    合并代码，对所有模块执行 git merge
 
 - python repos.py -h
 
@@ -51,7 +100,7 @@
 
 - python repos.py -c `git_command`
 
-    对所有模块执行自定义 git 命令，例如: -c git status.
+    对所有模块执行自定义 git 命令，例如: -c git cherry.
 
 - python repos.py -d
 
