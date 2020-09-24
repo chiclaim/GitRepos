@@ -52,11 +52,36 @@
 git clone -b your_branch git@github.com:chiclaim/GitHubClient.git GitHubClient
 ```
 
-然后进入 GitHubClient 目录，执行如下命令，：
+然后进入 GitHubClient 目录，执行如下命令：
 
 ```
 python repos.py sync -b master
 ```
+
+此时，你需要查看所有模块的分支情况，可以使用命令：
+
+```
+python repos.py branch
+```
+
+然后你想创建一个 feature 分支，可以使用：
+
+```
+python repos.py cfb `new_branch_name` -p
+```
+
+然后你可能做了一些修改，添加了一些文件，你可以使用 status 命令，看看你都修改了哪些模块，status命令会清晰的展示，哪些模块需要push，哪些模块没有提交：
+
+```
+python repos.py status
+```
+
+当你提交了所有代码后，你可以通过如下命令，将代码统一 push 带远端：
+
+```
+python repos.py push
+```
+
 
 
 ## 常用命令
@@ -74,6 +99,14 @@ python repos.py sync -b master
 
     同 `python repos.py sync`
 
+- python repos.py branch
+
+    聚合展示所有模块的当前分支（一般开发前，要确保所有的模块都在统一的分支上）
+
+- python repos.py status
+
+    聚合展示所有模块的当前状态（哪些模块需要程序员处理）
+
 - python repos.py push
 
     对所有模块执行 git push
@@ -84,11 +117,7 @@ python repos.py sync -b master
 
 - python repos.py checkout `your_branch_name`
 
-    对所有模块执行 git checkout
-
-- python repos.py branch
-
-    聚合展示所有模块的当前分支（一般开发前，要确保所有的模块都在统一的分支上）
+    统一切换分支。对所有模块执行 git checkout
 
 - python repos.py merge `source_branch`
 
