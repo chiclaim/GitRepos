@@ -26,7 +26,7 @@
 
 一般 iOS、Android 都是模块化开发，可以将脚本文件 `repos.py` 和 `repos_manifest.xml` 拷贝到主工程 `根目录`，然后提交。
 
-第一次同步代码时，其他仓库默认会使用当前仓库所在的分支。也可以手动指定分支：`python repos.py sync -b master`
+第一次同步代码时，其他仓库默认会使用当前仓库所在的分支：`python repos.py sync`
 
 例如，你的项目名字叫做 GitHubClient，这个是你的主工程，你的代码是多模块组成的（非单工程）的。GitHubClient 这个主工程依赖其他模块。
 
@@ -55,7 +55,7 @@ git clone -b your_branch git@github.com:chiclaim/GitHubClient.git GitHubClient
 然后进入 GitHubClient 目录，执行如下命令：
 
 ```
-python repos.py sync -b master
+python repos.py sync
 ```
 
 此时，你需要查看所有模块的分支情况，可以使用命令：
@@ -82,7 +82,10 @@ python repos.py status
 python repos.py push
 ```
 
+## 脚本不在项目主工程里面，只支持同步代码
 
+同步代码，可以自定义代码输出路径例如：`python repos.py sync -d "C:\xxx"` 路径为绝对路径
+与此同时，还可以指定 branch 例如：`python3 repos.py sync -d "C:\Program Files (x86)" -b master`
 
 ## 常用命令
 
@@ -92,8 +95,7 @@ python repos.py push
 
 - python repos.py sync
 
-    同步所有模块代码，也可以自定义代码输出路径例如：`python repos.py sync -d "C:\xxx"` 路径为绝对路径
-    与此同时，还可以指定 branch 例如：`python3 repos.py sync -d "C:\Program Files (x86)" -b master`
+    同步所有模块代码
 
 - python repos.py pull
 
