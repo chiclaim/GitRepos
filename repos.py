@@ -140,6 +140,7 @@ def pull(custom_dir=None, branch_name='master'):
             print_with_color('{0:-^50}'.format(project_name), PrintColor.GREEN)
             print_with_color('目标文件夹 {0} 已经存在，并且不为空'.format(project_name), PrintColor.RED)
             sys.exit(-1)
+        # 文件夹存在，但是 .git 文件夹为空
 
 
 def push(has_option=False):
@@ -332,7 +333,8 @@ def execute():
                     if len(args) > d_index + 1:
                         custom_dir = args[d_index + 1]
                     else:
-                        print_with_color('err: command -d must set directory, like: -d "C:\\Program Files (x86)"', PrintColor.RED)
+                        print_with_color('err: command -d must set directory, like: -d "C:\\Program Files (x86)"',
+                                         PrintColor.RED)
                         sys.exit(-1)
 
                 final_branch = None
