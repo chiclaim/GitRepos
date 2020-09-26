@@ -196,7 +196,7 @@ def status():
             if msg is None:
                 print_with_color('Project {0} is clean'.format(project_name))
             else:
-                print_with_color(msg, PrintColor.YELLOW)
+                print_with_color(msg, PrintColor.RED)
             continue
         else:
             print_with_color('Project {0}/'.format(project_name), PrintColor.YELLOW)
