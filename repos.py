@@ -188,6 +188,10 @@ def status():
                     msg = ('Project {0} need to pull'.format(project_name))
                 elif line.find('use "git push"') != -1:
                     msg = ('Project {0} need to push'.format(project_name))
+                elif line.find('detached at') != -1:
+                    print_with_color('Project {0}/'.format(project_name), PrintColor.YELLOW)
+                    msg = '\t{0}'.format(line)
+                    break
                 # other situations
             if msg is None:
                 print_with_color('Project {0} is clean'.format(project_name))
@@ -198,7 +202,7 @@ def status():
             print_with_color('Project {0}/'.format(project_name), PrintColor.YELLOW)
         for line in lines:
             status_file = line.rsplit(" ", 1)
-            print('     {0}{1}{2} {3}'.format(PrintColor.RED, status_file[0], PrintColor.END, status_file[1]))
+            print('\t{0}{1}{2} {3}'.format(PrintColor.RED, status_file[0], PrintColor.END, status_file[1]))
 
 
 def branch():
