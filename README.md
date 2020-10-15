@@ -26,7 +26,7 @@
 
 一般 iOS、Android 都是模块化开发，可以将脚本文件 `repos.py` 和 `repos_manifest.xml` 拷贝到主工程 `根目录`，然后提交。
 
-第一次同步代码时，其他仓库默认会使用当前仓库所在的分支：`python repos.py sync`
+第一次同步代码时，其他仓库默认会使用当前仓库所在的分支：`repos sync`
 
 例如，你的项目名字叫做 GitHubClient，这个是你的主工程，你的代码是多模块组成的（非单工程）的。GitHubClient 这个主工程依赖其他模块。
 
@@ -55,90 +55,96 @@ git clone -b your_branch git@github.com:chiclaim/GitHubClient.git GitHubClient
 然后进入 GitHubClient 目录，执行如下命令：
 
 ```
-python repos.py sync
+repos sync
 ```
 
 此时，你需要查看所有模块的分支情况，可以使用命令：
 
 ```
-python repos.py branch
+repos branch
 ```
 
 然后你想创建一个 feature 分支，可以使用：
 
 ```
-python repos.py cfb new_branch_name -p
+repos cfb new_branch_name -p
 ```
 
 然后你可能做了一些修改，添加了一些文件，你可以使用 status 命令，看看你都修改了哪些模块，status命令会清晰的展示，哪些模块需要push，哪些模块没有提交：
 
 ```
-python repos.py status
+repos status
 ```
 
 当你提交了所有代码后，你可以通过如下命令，将代码统一 push 带远端：
 
 ```
-python repos.py push
+repos push
 ```
 
 ## 脚本不在项目主工程里面(只支持同步代码)
 
-同步代码，可以自定义代码输出路径例如：`python repos.py sync -d "C:\xxx"` 路径为绝对路径
+同步代码，可以自定义代码输出路径例如：`repos sync -d "C:\xxx"` 路径为绝对路径
 
-与此同时，还可以指定 branch 例如：`python3 repos.py sync -d "C:\Program Files (x86)" -b master`
+与此同时，还可以指定 branch 例如：`repos sync -d "C:\Program Files (x86)" -b master`
+
+## 关于 python 版本
+
+需要安装 python3，不支持 python2
+
+如果你机器上共存了 python2 和 python3 ，你可能需要修改 shell 脚本 repos 或 bat 脚本 repos.bat
 
 ## 常用命令
 
-- python repos.py cfb `new_branch_name` -p
+- repos cfb `new_branch_name` -p
 
     新的需求，我们需要统一创建 feature 分支（cfb 是 create feature branch 简称），-p 表示推送到远程，没有该选项表示创建本地分支
 
-- python repos.py sync
+- repos sync
 
     同步所有模块代码
 
-- python repos.py pull
+- repos pull
 
-    同 `python repos.py sync`
+    同 `repos sync`
 
-- python repos.py branch
+- repos branch
 
     聚合展示所有模块的当前分支（一般开发前，要确保所有的模块都在统一的分支上）
 
-- python repos.py status
+- repos status
 
     聚合展示所有模块的当前状态（哪些模块需要程序员处理）
 
-- python repos.py push
+- repos push
 
     对所有模块执行 git push
 
-- python repos.py push -u
+- repos push -u
 
     如果没有指定跟踪的分支，加上 -u 即可。执行 git push -u remote branch
 
-- python repos.py checkout `your_branch_name`
+- repos checkout `your_branch_name`
 
     统一切换分支。对所有模块执行 git checkout
 
-- python repos.py merge `source_branch`
+- repos merge `source_branch`
 
     合并代码，对所有模块执行 git merge
 
-- python repos.py -h
+- repos -h
 
     帮助文档
 
-- python repos.py -c `git_command`
+- repos -c `git_command`
 
     对所有模块执行自定义 git 命令，例如: -c git cherry.
 
-- python repos.py -d
+- repos -d
 
     删除本地分支
 
-- python repos.py -r
+- repos -r
 
     删除远程分支
 
