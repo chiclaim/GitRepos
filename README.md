@@ -6,7 +6,8 @@
 - Google repo 不能跨多个 remote
 - Google repo 对 Windows 系统支持不是很友好
 - Google repo 的 status 命令输出信息过多
-- 简化迭代时新建分支流程，提高效率
+
+于是基于 Python3 开发一套关于批量管理多个 git 仓库的工具。
 
 
 # 使用说明
@@ -123,7 +124,7 @@ repos push
 
 - repos push -u
 
-    如果没有指定跟踪的分支，加上 -u 即可。执行 git push -u remote branch
+    如果没有指定跟踪的分支，加上 -u 即可。相当于执行 git push -u remote branch
 
 - repos checkout `your_branch_name`
 
