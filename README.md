@@ -2,8 +2,9 @@
 统一管理 Git 多仓库，使用上比 Google Repo 更加便利
 
 # 背景
-- repo 繁琐问题，需要单独管理 Manifest 分支
-- repo 不能跨多个 remote
+- Google repo 繁琐问题，需要单独管理 Manifest 分支，开发时常常忘记
+- Google repo 不能跨多个 remote
+- Google repo 对 Windows 系统支持不是很友好
 - Google repo 的 status 命令输出信息过多
 - 简化迭代时新建分支流程，提高效率
 
