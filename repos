@@ -1,1 +1,1 @@
-python repos.py $*
+python3 repos.py $*
