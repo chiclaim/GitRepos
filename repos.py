@@ -186,7 +186,7 @@ def status():
                         project_name))
                 if line.find('use "git pull"') != -1:
                     msg = ('Project {0} need to pull'.format(project_name))
-                elif line.find('use "git push"') != -1:
+                elif line.find('Your branch is ahead of') != -1:
                     msg = ('Project {0} need to push'.format(project_name))
                 elif line.find('detached at') != -1:
                     print_with_color('Project {0}/'.format(project_name), PrintColor.YELLOW)
@@ -218,18 +218,18 @@ def branch():
             if line.startswith('*'):
                 current_branch = line[2:]
                 if current_branch in branch_map:
-                    branch_map[current_branch] = branch_map[current_branch] + 1
+                    branch_map[current_branch].append(project_name)
                 else:
-                    branch_map[current_branch] = 1
-
-    if len(branch_map) > 0:
-        if len(branch_map) == 1:
+                    branch_map[current_branch] = [project_name]
+                break
+    length = len(branch_map)
+    if length > 0:
+        if length == 1:
             print('all projects in branch', end=' ')
             print_with_color(next(iter(branch_map)), PrintColor.GREEN)
         else:
-            print_with_color('There are {0} projects:'.format(len(manifest.projects)), PrintColor.YELLOW)
-            for name in branch_map:
-                print_with_color('   {0} projects in {1}'.format(branch_map[name], name), PrintColor.GREEN)
+            for key, value in branch_map.items():
+                print(f"----{key}({len(value)})----:\n\t{value}\n")
 
 
 def merge(source_branch):
