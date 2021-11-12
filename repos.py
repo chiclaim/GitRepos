@@ -1,8 +1,8 @@
-import signal
-import sys
-import os
 import getopt
+import os
+import signal
 import string
+import sys
 from enum import Enum
 from xml.etree import ElementTree as eTree
 
@@ -97,7 +97,7 @@ def check_project_exist(project_dir, project_name):
         sys.exit(-1)
 
 
-# manifest 上一级目录
+# manifest 的上一级目录
 def get_parent_dir():
     return os.path.dirname(manifest_dir)
 
@@ -133,11 +133,11 @@ def pull(custom_dir=None, branch_name='master'):
             os.system('git clone -b {0} {1} {2}'.format(branch_name, git_url, project_name))
         elif os.path.exists(os.path.join(project_dir, '.git')):
             # git pull
-            print_with_color('{0:-^50}'.format(project_name), PrintColor.GREEN)
+            print_with_color('{0:-^80}'.format(project_name), PrintColor.GREEN)
             os.chdir(project_dir)
             os.system('git {0}'.format(Command.PULL.value))
         else:
-            print_with_color('{0:-^50}'.format(project_name), PrintColor.GREEN)
+            print_with_color('{0:-^80}'.format(project_name), PrintColor.GREEN)
             print_with_color('目标文件夹 {0} 已经存在，并且不为空'.format(project_name), PrintColor.RED)
             sys.exit(-1)
         # 文件夹存在，但是 .git 文件夹为空
@@ -171,6 +171,7 @@ def checkout(target_branch):
 def status():
     target_path = get_parent_dir()
     for project_name in manifest.projects.keys():
+        print_with_color('{0:-^80}'.format(project_name), PrintColor.GREEN)
         project_dir = os.path.join(target_path, project_name)
         check_project_exist(project_dir, project_name)
         os.chdir(project_dir)
@@ -186,23 +187,19 @@ def status():
                         project_name))
                 if line.find('use "git pull"') != -1:
                     msg = ('Project {0} need to pull'.format(project_name))
-                elif line.find('Your branch is ahead of') != -1:
+                elif line.find('use "git push"') != -1:
                     msg = ('Project {0} need to push'.format(project_name))
-                elif line.find('detached at') != -1:
-                    print_with_color('Project {0}/'.format(project_name), PrintColor.YELLOW)
-                    msg = '\t{0}'.format(line)
-                    break
                 # other situations
             if msg is None:
                 print_with_color('Project {0} is clean'.format(project_name))
             else:
-                print_with_color(msg, PrintColor.RED)
+                print_with_color(msg, PrintColor.YELLOW)
             continue
         else:
             print_with_color('Project {0}/'.format(project_name), PrintColor.YELLOW)
         for line in lines:
             status_file = line.rsplit(" ", 1)
-            print('\t{0}{1}{2} {3}'.format(PrintColor.RED, status_file[0], PrintColor.END, status_file[1]))
+            print('     {0}{1}{2} {3}'.format(PrintColor.RED, status_file[0], PrintColor.END, status_file[1]))
 
 
 def branch():
@@ -256,6 +253,18 @@ def execute_cfb(branch_name, need_push=False):
         push(True)
 
 
+def execute_tag(tag_name):
+    target_path = get_parent_dir()
+    for project_name in manifest.projects.keys():
+        if 'flutter_reset_module' == project_name:
+            continue
+        print_with_color('{0:-^80}'.format(project_name), PrintColor.GREEN)
+        project_dir = os.path.join(target_path, project_name)
+        os.chdir(project_dir)
+        os.system('git tag {0}'.format(tag_name))
+        os.system('git push origin {0}'.format(tag_name))
+
+
 def execute_raw_command(raw_command):
     target_path = get_parent_dir()
     for project_name in manifest.projects.keys():
@@ -276,6 +285,47 @@ def delete_branch(branch_name, is_remote=False):
             os.system('git push {0} --delete {1}'.format(get_remote(project_dir), branch_name))
         else:
             os.system('git branch -d {0}'.format(branch_name))
+
+
+# 删除远程已经合并 master 的分支
+def delete_merged_master_branch():
+    target_path = get_parent_dir()
+    for project_name in manifest.projects.keys():
+        project_dir = os.path.join(target_path, project_name)
+        check_project_exist(project_dir, project_name)
+        os.chdir(project_dir)
+        r = os.popen('git branch --merged master -r')
+        merged_branch_list = set()
+        lines = r.read().splitlines(False)
+        for line in lines:
+            merged_branch = line.strip()
+            index = merged_branch.index('/')
+            if index == -1:
+                break
+            merged_branch = merged_branch[index + 1:]
+            if ('master' not in merged_branch) and ('develop' not in merged_branch):
+                merged_branch_list.add(merged_branch)
+
+        remote_branch_list = set()
+        r2 = os.popen('git ls-remote --heads')
+        lines2 = r2.read().splitlines(False)
+        for i, line in enumerate(lines2):
+            line = line.strip()
+            str_flag = 'refs/heads/'
+            index = line.index(str_flag)
+            if index == -1:
+                break
+            index = index + len(str_flag)
+            branch_name = line[index:]
+            if ('master' not in branch_name) and ('develop' not in branch_name):
+                remote_branch_list.add(branch_name)
+
+        remote_merged_branch_list = merged_branch_list & remote_branch_list
+        count = len(remote_merged_branch_list)
+        remote = get_remote(project_dir)
+        for i, remote_merged_branch in enumerate(remote_merged_branch_list):
+            os.system('git push {0} --delete {1}'.format(remote, remote_merged_branch))
+            print(f'{project_name} {count}:{i + 1} ---> {remote_merged_branch}')
 
 
 def repos_help():
@@ -299,7 +349,7 @@ def repos_help():
 
 def execute():
     try:
-        options, args = getopt.getopt(sys.argv[1:], 'chd:r:', ['help'])
+        options, args = getopt.getopt(sys.argv[1:], 'chd:r:', ['help', 'dr', 'rd'])
 
         for name, value in options:
             if name == '-c':
@@ -309,11 +359,17 @@ def execute():
             elif name in ('-h', '--help'):
                 repos_help()
                 return
-            elif name == '-d':
+            elif name == '-d':  # 删除本地分支
                 delete_branch(value)
                 return
-            elif name == '-r':
+            elif name == '-r':  # 删除远程分支
                 delete_branch(value, True)
+                return
+            elif name in ('--dr', '--rd'):  # 删除本地和远程分支
+                for br in args:
+                    delete_branch(br)
+                    delete_branch(br, True)
+                return
             else:
                 print_with_color('error: unknown switch "{0}"'.format(name))
                 return
@@ -380,6 +436,19 @@ def execute():
                 else:
                     print_with_color('err: cfb command must contain new branch name', PrintColor.RED)
                 break
+            elif arg == 'clean':
+                if len(args) > 1 and args[1] == 'branch':
+                    delete_merged_master_branch()
+                else:
+                    print_with_color('err: please input "repos clean branch" command', PrintColor.RED)
+                break
+            elif arg == 'tag':
+                if len(args) > 1:
+                    tag_name = args[1]
+                    execute_tag(tag_name)
+                else:
+                    print_with_color('err: tag command must contain tag name', PrintColor.RED)
+                break
             else:
                 print_with_color("err: unsupported command '{0}', see 'python repos.py -h or --help'".format(arg),
                                  PrintColor.RED)
@@ -394,7 +463,8 @@ def init():
 
 
 def main():
-    # Ctrl+C 会触发 SIGINT 信号
+    # Ctrl+Z (Mac) 会触发 SIGINT 信号
+    # Ctrl+C (Windows) 会触发 SIGINT 信号
     signal.signal(signal.SIGINT, signal_handler)
     init()
     parse_manifest()
