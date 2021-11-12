@@ -134,6 +134,10 @@ repos push
 
     合并代码，对所有模块执行 git merge
 
+- repos clean branch
+
+    批量清理 feature 分支，避免垃圾分支过多。(已经合并到 master 的 feature 分支)
+
 - repos -h
 
     帮助文档
@@ -153,7 +157,7 @@ repos push
 
 # TODOs
 
-- [ ] Windows 系统下命令输出日志没有颜色高亮（可以使用 git bash），Mac 和 Linux 会有颜色高亮展示
+- [x] 统一删除 feature 分支，避免垃圾分支过多
 - [x] 分组展示当前所有模块的分支详细情况
 - [x] 聚合展示当前所有模块的分支情况，快速查看所有模块是否在统一的分支上
 - [x] 精确展示 status 日志
