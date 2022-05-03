@@ -10,7 +10,32 @@
 于是基于 Python3 开发一套关于批量管理多个 git 仓库的工具。
 
 
-# 使用说明
+# 使用步骤
+
+## 配置环境变量
+
+```
+# 1. clone 脚本
+git clone git@github.com:chiclaim/GitRepos.git
+
+# 2. 配置环境变量(MacOS 为例)
+open ~/.bash_profile
+
+# 3. 添加如下内容
+export REPOS_HOME=你刚刚克隆的脚本地址
+export PATH=${PATH}:${REPOS_HOME}
+
+# 终端运行 (或新起一个终端)
+source ~/.bash_profile
+
+# 就可以使用 repos 命令
+repos --help
+
+# 如果需要使用自动创建 merge request（repos cmr $target_branch）需要设置你的 private-token
+repos --set-private-token your-token
+
+```
+
 
 ## 新建 module_manifest.json
 
@@ -50,39 +75,12 @@
 - moduleName 工程的名称
 - branch_boss 必须要存在一个 branch_boss = true 的项目，其他的项目均以该组件的 branch 作为标准，例如 某个组件的 branch_boss=true，其他组件执行 git clone 时都会以该分支为准。
 
-## 配置环境变量
 
-```
-# 1. clone 脚本
-git clone git@github.com:chiclaim/GitRepos.git
-
-# 2. 配置环境变量(MacOS 为例)
-open ~/.bash_profile
-
-# 3. 添加如下内容
-export REPOS_HOME=你刚刚克隆的脚本地址
-export PATH=${PATH}:${REPOS_HOME}
-
-# 终端运行 (或新起一个终端)
-source ~/.bash_profile
-
-# 就可以使用 repos 命令
-repos --help
-
-# 如果需要使用自动创建 merge request（repos cmr $target_branch）需要设置你的 private-token
-repos --set-private-token your-token
-
-```
-
-## 使用步骤
-
-配置完环境变量后，您就可以把 repos 当做 git 命令一样使用。
-
-### clone 代码
+## clone 代码
 
 使用 git 时 clone 代码，我们会在目标目录执行 git clone git_url 命令
 
-同理，使用 repos clone 代码，也需要在目标目录执行 repos init git_url module_manifest_json_path
+同理，使用 repos clone 代码，也需要在目标目录执行 repos init $module_manifest_git_url $module_manifest_path
 
 repos 需要所有 git 项目的 json 配置文件，repos init 的第一个参数是配置文件所在的仓库的git url，第二个参数就是配置文件的相对路径（也可以绝对路径）
 
@@ -98,7 +96,7 @@ repos init git@github.com:chiclaim/GitRepos.git GitRepos/template_module_manifes
 repos sync
 ```
 
-repos 会帮你将 template_module_manifest.json 配置的所有组件，全部 clone 到目标目录（执行 repos init 的目录）
+repos 会帮你将 module_manifest.json 配置的所有组件，全部 clone 到目标目录（执行 repos init 的目录）
 
 ### 将已经存在的项目交给 repos 管理
 
@@ -112,7 +110,7 @@ repos init-exist 的第一个参数是组件配置文件的目录
 
 然后可以尝试执行 repos branch，查看当前所有项目的分支情况
 
-## 命令介绍
+# 命令介绍
 
 repos 和 git 命令一样，你可以在项目目录或任意的子目录执行 repos 命令
 
