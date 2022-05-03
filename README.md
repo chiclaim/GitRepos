@@ -114,11 +114,11 @@ repos 和 git 命令一样，你可以在项目目录或任意的子目录执行
 
 
 
-- repos init $AppConfig_SSH $manifest_path
+- repos init $module_manifest_git_url $module_manifest_path
 
     初始化新项目
 
-- repos init-exist $manifest_path
+- repos init-exist $module_manifest_path
 
     如果你的工程已经存在，使用 init-exist 初始化
 
@@ -172,14 +172,12 @@ repos 和 git 命令一样，你可以在项目目录或任意的子目录执行
 
 - repos diff [branch_name]
 
-    分支对比
+    分支对比，可以输出你修改了哪些组件
 
 - repos cmr $target_branch
 
-    自动为修改的组件提交 merge request,参数说明：
-    $target_branch 目标分支，即当前分支 merge 到的分支, 一般为 release/develop/master 分支
-
-
+    source_branch 为当前分支，自动为修改的组件提交 merge request
+    $target_branch 目标分支, 一般为 release/develop/master 分支
 
 
 
