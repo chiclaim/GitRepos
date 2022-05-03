@@ -12,9 +12,13 @@
 
 # 使用说明
 
-## 编辑 template_module_manifest.json
+## 新建 module_manifest.json
 
-将需要管理的 git 仓库 url 放在 `template_module_manifest.json` 中，如：
+参考 `template_module_manifest.json` 文件，创建自己的组件配置文件，如 module_manifest.json
+
+新建的文件，可以存放在你的任意仓库中。
+
+将需要管理的 git 仓库 url 放在 `module_manifest.json` 中，如：
 
 ```
 {
