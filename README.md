@@ -12,95 +12,119 @@
 
 # 使用说明
 
-## 编辑 repos_manifest.xml
+## 编辑 template_module_manifest.json
 
-将需要管理的 git 仓库 url 放在 `repos_manifest.xml` 中，如：
-
-```
-<manifest>
-    <project name="Repos3" git="git@github.com:chiclaim/Repos.git" />
-    <project name="Repos2" git="git@github.com:chiclaim/Repos.git" />
-    <project name="Repos1" git="git@github.com:chiclaim/Repos.git" />
-</manifest>
-```
-
-## 复制脚本和清单文件到你的主工程（建议）
-
-一般 iOS、Android 都是模块化开发，可以将脚本文件 `repos.py` 和 `repos_manifest.xml` 拷贝到主工程 `根目录`，然后提交。
-
-第一次同步代码时，其他仓库默认会使用当前仓库所在的分支：`repos sync`
-
-例如，你的项目名字叫做 GitHubClient，这个是你的主工程，你的代码是多模块组成的（非单工程）的。GitHubClient 这个主工程依赖其他模块。
-
-所有的仓库在 `repos_manifest.xml` 中配置：
+将需要管理的 git 仓库 url 放在 `template_module_manifest.json` 中，如：
 
 ```
-<manifest>
-    <!--主工程-->
-    <project name="Repos1" git="git@github.com:chiclaim/GitHubClient.git" />
-    <!--趋势模块-->
-    <project name="Repos3" git="git@github.com:chiclaim/Trending.git" />
-    <!--用户模块-->
-    <project name="Repos2" git="git@github.com:chiclaim/User.git" />
-    <!--省略其他模块-->
-</manifest>
+{
+  "modules": [
+    {
+      "project_id": 0,
+      "git": "git@github.com:chiclaim/Repos.git",
+      "branch_boss": true,
+      "moduleName": "Repos"
+    },
+    {
+      "project_id": 0,
+      "git": "git@github.com:chiclaim/GitRepos.git",
+      "moduleName": "Repos1"
+    },
+    {
+      "project_id": 0,
+      "git": "git@github.com:chiclaim/GitRepos.git",
+      "moduleName": "Repos2"
+    }
+  ]
+}
 ```
 
-假设文件 `repos.py` 和 `repos_manifest.xml` 已经在你的 GitHubClient `根目录` 了
+字段说明：
 
-如果是第一次拉代码，首先克隆主工程：
+- project_id 用于给 gitlab 批量创建 merge request
+- git 工程等的 git url 地址
+- moduleName 工程的名称
+- branch_boss 必须要存在一个 branch_boss = true 的项目，其他的项目均以该组件的 branch 作为标准，例如 某个组件的 branch_boss=true，其他组件执行 git clone 时都会以该分支为准。
+
+## 配置环境变量
 
 ```
-git clone -b your_branch git@github.com:chiclaim/GitHubClient.git GitHubClient
+# 1. clone 脚本
+git clone git@github.com:chiclaim/GitRepos.git
+
+# 2. 配置环境变量(MacOS 为例)
+open ~/.bash_profile
+
+# 3. 添加如下内容
+export REPOS_HOME=你刚刚克隆的脚本地址
+export PATH=${PATH}:${REPOS_HOME}
+
+# 终端运行 (或新起一个终端)
+source ~/.bash_profile
+
+# 就可以使用 repos 命令
+repos --help
+
+# 如果需要使用自动创建 merge request（repos cmr $target_branch）需要设置你的 private-token
+repos --set-private-token your-token
+
 ```
 
-然后进入 GitHubClient 目录，执行如下命令：
+## 使用步骤
+
+配置完环境变量后，您就可以把 repos 当做 git 命令一样使用。
+
+### clone 代码
+
+使用 git 时 clone 代码，我们会在目标目录执行 git clone git_url 命令
+
+同理，使用 repos clone 代码，也需要在目标目录执行 repos init git_url module_manifest_json_path
+
+repos 需要所有 git 项目的 json 配置文件，repos init 的第一个参数是配置文件所在的仓库的git url，第二个参数就是配置文件的相对路径（也可以绝对路径）
+
+例如:
+
+```
+repos init git@github.com:chiclaim/GitRepos.git GitRepos/template_module_manifest.json
+```
+
+最后执行
 
 ```
 repos sync
 ```
 
-此时，你需要查看所有模块的分支情况，可以使用命令：
+repos 会帮你将 template_module_manifest.json 配置的所有组件，全部 clone 到目标目录（执行 repos init 的目录）
+
+### 将已经存在的项目交给 repos 管理
+
+如果您的项目已经存在，可以执行如下命令：
 
 ```
-repos branch
+repos init-exist GitRepos/template_module_manifest.json
 ```
 
-然后你想创建一个 feature 分支，可以使用：
+repos init-exist 的第一个参数是组件配置文件的目录
 
-```
-repos cfb new_branch_name -p
-```
+然后可以尝试执行 repos branch，查看当前所有项目的分支情况
 
-然后你可能做了一些修改，添加了一些文件，你可以使用 status 命令，看看你都修改了哪些模块，status命令会清晰的展示，哪些模块需要push，哪些模块没有提交：
+## 命令介绍
 
-```
-repos status
-```
+repos 和 git 命令一样，你可以在项目目录或任意的子目录执行 repos 命令
 
-当你提交了所有代码后，你可以通过如下命令，将代码统一 push 带远端：
 
-```
-repos push
-```
 
-## 脚本不在项目主工程里面(只支持同步代码)
+- repos init $AppConfig_SSH $manifest_path
 
-同步代码，可以自定义代码输出路径例如：`repos sync -d "C:\xxx"` 路径为绝对路径
+    初始化新项目
 
-与此同时，还可以指定 branch 例如：`repos sync -d "C:\Program Files (x86)" -b master`
+- repos init-exist $manifest_path
 
-## 关于 python 版本
-
-需要安装 python3，不支持 python2
-
-如果你机器上共存了 python2 和 python3 ，你可能需要修改 shell 脚本 repos 或 bat 脚本 repos.bat
-
-## 常用命令
+    如果你的工程已经存在，使用 init-exist 初始化
 
 - repos cfb `new_branch_name` -p
 
-    新的需求，我们需要统一创建 feature 分支（cfb 是 create feature branch 简称），-p 表示推送到远程，没有该选项表示创建本地分支
+    统一创建分支(feature)
 
 - repos sync
 
@@ -108,15 +132,7 @@ repos push
 
 - repos pull
 
-    同 `repos sync`
-
-- repos branch
-
-    聚合展示所有模块的当前分支（一般开发前，要确保所有的模块都在统一的分支上）
-
-- repos status
-
-    聚合展示所有模块的当前状态（哪些模块需要程序员处理）
+    对所有模块执行 git pull
 
 - repos push
 
@@ -124,19 +140,19 @@ repos push
 
 - repos push -u
 
-    如果没有指定跟踪的分支，加上 -u 即可。相当于执行 git push -u remote branch
+    如果没有指定跟踪的分支，加上 -u 即可。执行 git push -u remote branch
 
 - repos checkout `your_branch_name`
 
-    统一切换分支。对所有模块执行 git checkout
+    对所有模块执行 git checkout
+
+- repos branch
+
+    聚合展示所有模块的当前分支
 
 - repos merge `source_branch`
 
-    合并代码，对所有模块执行 git merge
-
-- repos clean branch
-
-    批量清理 feature 分支，避免垃圾分支过多。(已经合并到 master 的 feature 分支)
+    对所有模块执行 git merge
 
 - repos -h
 
@@ -144,7 +160,7 @@ repos push
 
 - repos -c `git_command`
 
-    对所有模块执行自定义 git 命令，例如: -c git cherry.
+    对所有模块执行自定义 git 命令，例如: -c git status.
 
 - repos -d
 
@@ -154,9 +170,21 @@ repos push
 
     删除远程分支
 
+- repos diff [branch_name]
+
+    分支对比
+
+- repos cmr $target_branch
+
+    自动为修改的组件提交 merge request,参数说明：
+    $target_branch 目标分支，即当前分支 merge 到的分支, 一般为 release/develop/master 分支
+
+
+
+
 
 # TODOs
-- [ ] 支持通过配置环境变量的方式，全局可以使用 repos 命令
+- [x] 支持通过配置环境变量的方式，全局可以使用 repos 命令
 - [x] 统一删除 feature 分支，避免垃圾分支过多
 - [x] 分组展示当前所有模块的分支详细情况
 - [x] 聚合展示当前所有模块的分支情况，快速查看所有模块是否在统一的分支上
