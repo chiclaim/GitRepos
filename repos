@@ -1,1 +1,747 @@
-python3 repos.py $*
+#!/usr/bin/env python3
+
+import getopt
+import os
+import signal
+import string
+import sys
+import json
+import shutil
+
+from gitlab_api import create_merge_request, set_private_token
+from beans import Project, Command
+from utils import print_error, run_cmd, config_file_path, command_prefix
+
+
+REPOS_CONFIG_DIR = '.repos_config'
+REPOS_CONFIG_NAME = "repos_config.json"
+work_dir: string
+repos_config_dir: string
+manifest_file_path: string
+
+
+# 对于忽略的工程，不处理 merge 操作
+ignore_projects = ["flutter_reset_module"]
+
+projects = []
+branch_boss_project: Project
+root_project: Project
+
+
+def print_config():
+    if os.path.exists(config_file_path):
+        with open(config_file_path, "r") as jsonFile:
+            data = json.load(jsonFile)
+            for key, value in data.items():
+                print(f'{key}={value}')
+
+
+def __diff_line_count(branch1, branch2):
+    diff_result = run_cmd(f"git diff --name-only {branch1}..{branch2}")
+    return len(diff_result.splitlines())
+
+
+# 中断执行
+def signal_handler(signal_num, frame):
+    sys.exit(signal_num)
+
+
+# 解析 Manifest 文件
+def parse_manifest(module_manifest_path):
+    manifest_file_path = os.path.abspath(module_manifest_path)
+    if not os.path.exists(manifest_file_path):
+        print_error("当前文件夹找不到{0}文件".format(module_manifest_path))
+    else:
+        f = open(module_manifest_path)
+        data = json.load(f)
+        for module in data['modules']:
+            if module.get('ignore', False):
+                continue
+            p = Project(module['project_id'],
+                        module['moduleName'],
+                        module.get('importSource', True),
+                        module['git'],
+                        module.get('ignore', False),
+                        module.get('rootProject', False),
+                        module.get('isFlutter', False),
+                        module.get('version', None))
+            projects.append(p)
+            if module.get('rootProject', False):
+                global root_project
+                root_project = p
+
+            if module.get('branch_boss', False):
+                global branch_boss_project
+                branch_boss_project = p
+
+
+def check_project_exist(project_dir, project_name):
+    if not os.path.exists(project_dir):
+        print_error(f'project `{project_name}` is not exist, you may need to sync projects')
+
+
+def check_state_with_msg(state, cmd, needExit=True):
+    if state != 0:
+        print_error(f"execute '{cmd}' failed", needExit)
+
+
+def get_module_manifest_path(config_file_path):
+    f = open(config_file_path)
+    data = json.load(f)
+    key = "module_manifest_path"
+    if key in data:
+        return data[key]
+    else:
+        print_error(f"The key {key} not found in {config_file_path}")
+
+
+# 获取仓库的当前分支
+def get_actual_branch(project_dir):
+    os.chdir(project_dir)
+    r = run_cmd('git branch')
+    lines = r.splitlines(False)
+    for line in lines:
+        if line.startswith('*'):
+            return line[2:]
+
+
+# 获取 remote, 例如 origin
+def get_remote(project_dir):
+    os.chdir(project_dir)
+    r = run_cmd('git remote')
+    lines = r.splitlines(False)
+    return lines[0]
+
+
+def __should_ignore(project: Project, only_import_source):
+    return project.ignore or (only_import_source and not project.importSource)
+
+
+def pull(branch_name, only_import_source=False):
+    for project in projects:
+        if __should_ignore(project, only_import_source):
+            continue
+        project_dir = os.path.join(work_dir, project.name)
+        copy_git_hooks(project_dir)
+        print('{0:-^80}'.format(project_dir))
+        # 项目文件夹不存在，直接 clone
+        if not os.path.exists(project_dir):
+            os.chdir(work_dir)
+            cmd = f"git clone -b {branch_name} {project.git} {project.name}"
+            state = os.system(cmd)
+            should_exit = project.name not in ignore_projects
+            check_state_with_msg(state, cmd, should_exit)
+        # 存在 .git 文件夹，直接 git pull
+        elif os.path.exists(os.path.join(project_dir, '.git')):
+            os.chdir(project_dir)
+            cmd = f"git {Command.PULL.value}"
+            state = os.system(cmd)
+            should_exit = project.name not in ignore_projects
+            check_state_with_msg(state, cmd, should_exit)
+        # 存在项目文件夹，但是不存在 .git 文件夹，不做删除文件夹，可能用户在此项目中修改过逻辑代码
+        else:
+            print_error(f'{project.name} 已经存在，但不是git仓库，请检查是否修改过文件)')
+
+
+# push 操作，先和 master 对比，如果需要push的分支和master分支在内容上没有差别，则跳过CI
+def push(need_push=False, skip_ci=False):
+    for project in projects:
+        project_dir = os.path.join(work_dir, project.name)
+        check_project_exist(project_dir, project.name)
+        copy_git_hooks(project_dir)
+        print('{0:-^80}'.format(project.name))
+        os.chdir(project_dir)
+        push_option = ''
+        actual_branch = get_actual_branch(project_dir)
+        if need_push:
+            remote = get_remote(project_dir)
+            push_option = f' -u {remote} {actual_branch}'
+
+        if skip_ci or __diff_line_count('master', actual_branch) == 0:
+            print('the project skip ci~')
+            skip_ci_command = '--push-option=ci.skip'
+            push_option = f'{push_option} {skip_ci_command}'
+        cmd = f"git {Command.PUSH.value} {push_option}"
+        state = os.system(cmd)
+        check_state_with_msg(state, cmd)
+
+
+def checkout(target_branch):
+    for project in projects:
+        print('{0:-^80}'.format(project.name))
+        project_dir = os.path.join(work_dir, project.name)
+        check_project_exist(project_dir, project.name)
+        copy_git_hooks(project_dir)
+        os.chdir(project_dir)
+        cmd = f'git checkout {target_branch}'
+        state = os.system(cmd)
+        should_exit = project.name not in ignore_projects
+        check_state_with_msg(state, cmd, should_exit)
+
+
+def status():
+    for project in projects:
+        print('{0:-^80}'.format(project.name))
+        project_dir = os.path.join(work_dir, project.name)
+        check_project_exist(project_dir, project.name)
+        copy_git_hooks(project_dir)
+        os.chdir(project_dir)
+        r = run_cmd('git status -s')
+        lines = r.splitlines(False)
+        if len(lines) == 0:
+            r2 = run_cmd('git status')
+            lines2 = r2.splitlines(False)
+            msg = None
+            for line in lines2:
+                if line.find('All conflicts fixed but you are still merging') != -1:
+                    msg = ('Project {0} need to commit (All conflicts fixed but you are still merging)'.format(
+                        project.name))
+                if line.find('use "git pull"') != -1:
+                    msg = ('Project {0} need to pull'.format(project.name))
+                elif line.find('use "git push"') != -1:
+                    msg = ('Project {0} need to push'.format(project.name))
+                # other situations
+            if msg is None:
+                print('Project {0} is clean'.format(project.name))
+            else:
+                print(msg)
+            continue
+        else:
+            print('Project {0}/'.format(project.name))
+        for line in lines:
+            print(line)
+
+
+def branch():
+    branch_map = __branch()
+    length = len(branch_map)
+    if length > 0:
+        if length == 1:
+            print('all projects in branch', end=' ')
+            print(next(iter(branch_map)))
+        else:
+            print("The branch of projects are not unified.")
+            for key, value in branch_map.items():
+                print(f"\n----{key}({len(value)})----:\n\t{value}\n")
+    else:
+        print_error("unknown error with command branch")
+
+
+# 返回项目分支的分布信息
+def __branch():
+    branch_map = {}
+    for project in projects:
+        project_dir = os.path.join(work_dir, project.name)
+        check_project_exist(project_dir, project.name)
+        copy_git_hooks(project_dir)
+        os.chdir(project_dir)
+        r = run_cmd('git branch')
+        lines = r.splitlines(False)
+        for line in lines:
+            if line.startswith('*'):
+                current_branch = line[2:]
+                if current_branch in branch_map:
+                    branch_map[current_branch].append(project.name)
+                else:
+                    branch_map[current_branch] = [project.name]
+                break
+    return branch_map
+
+
+def merge(source_branch):
+    for project in projects:
+        print('{0:-^80}'.format(project.name))
+        if project.name in ignore_projects:
+            continue
+        project_dir = os.path.join(work_dir, project.name)
+        check_project_exist(project_dir, project.name)
+        copy_git_hooks(project_dir)
+        os.chdir(project_dir)
+        cmd = f'git {Command.MERGE.value} {source_branch}'
+        state = os.system(cmd)
+        check_state_with_msg(state, cmd)
+
+
+# 批量新建分支
+def execute_cfb(branch_name, need_push=False):
+    for project in projects:
+        print('{0:-^80}'.format(project.name))
+        project_dir = os.path.join(work_dir, project.name)
+        copy_git_hooks(project_dir)
+        os.chdir(project_dir)
+        state = os.system(f'git checkout {branch_name}')
+        if state == 0:
+            print(f"the {branch_name} is already exists!")
+        else:
+            cmd = f"git checkout -b {branch_name}"
+            state = os.system(cmd)
+            check_state_with_msg(state, cmd)
+
+    if need_push:
+        push(True)
+
+
+def execute_tag(tag_name):
+    for project in projects:
+        print('{0:-^80}'.format(project.name))
+        if project.name in ignore_projects:
+            continue
+        print('{0:-^80}'.format(project.name))
+        project_dir = os.path.join(work_dir, project.name)
+        os.chdir(project_dir)
+        os.system('git tag {0}'.format(tag_name))
+        os.system('git push origin {0}'.format(tag_name))
+
+
+def execute_raw_command(raw_command):
+    for project in projects:
+        print('{0:-^80}'.format(project.name))
+        if project.name in ignore_projects:
+            continue
+        project_dir = os.path.join(work_dir, project.name)
+        check_project_exist(project_dir, project.name)
+        os.chdir(project_dir)
+        os.system(raw_command)
+
+
+# 删除分支
+def delete_branch(branch_name, is_remote=False):
+    for project in projects:
+        print('{0:-^80}'.format(project.name))
+        if project.name in ignore_projects:
+            continue
+        project_dir = os.path.join(work_dir, project.name)
+        check_project_exist(project_dir, project.name)
+        os.chdir(project_dir)
+        if is_remote:
+            os.system('git push {0} --delete {1}'.format(get_remote(project_dir), branch_name))
+        else:
+            os.system('git branch -d {0}'.format(branch_name))
+
+
+# 删除远程已经合并 master 的分支
+def delete_merged_master_branch():
+    for project in projects:
+        print('{0:-^80}'.format(project.name))
+        if project.name in ignore_projects:
+            continue
+        project_dir = os.path.join(work_dir, project.name)
+        check_project_exist(project_dir, project.name)
+        os.chdir(project_dir)
+        r = run_cmd('git branch --merged master -r')
+        merged_branch_list = set()
+        lines = r.splitlines(False)
+        for line in lines:
+            merged_branch = line.strip()
+            index = merged_branch.index('/')
+            if index == -1:
+                break
+            merged_branch = merged_branch[index + 1:]
+            if ('master' not in merged_branch) and ('develop' not in merged_branch):
+                merged_branch_list.add(merged_branch)
+
+        remote_branch_list = set()
+        r2 = run_cmd('git ls-remote --heads')
+        lines2 = r2.splitlines(False)
+        for i, line in enumerate(lines2):
+            line = line.strip()
+            str_flag = 'refs/heads/'
+            index = line.index(str_flag)
+            if index == -1:
+                break
+            index = index + len(str_flag)
+            branch_name = line[index:]
+            if ('master' not in branch_name) and ('develop' not in branch_name):
+                remote_branch_list.add(branch_name)
+
+        remote_merged_branch_list = merged_branch_list & remote_branch_list
+        count = len(remote_merged_branch_list)
+        remote = get_remote(project_dir)
+        for i, remote_merged_branch in enumerate(remote_merged_branch_list):
+            os.system('git push {0} --delete {1}'.format(remote, remote_merged_branch))
+            print(f'{project.name} {count}:{i + 1} ---> {remote_merged_branch}')
+
+
+def repos_help():
+    txt = \
+        """
+        -h or --help:       输出帮助文档
+        -c :                对所有模块执行自定义 git 命令, 例如: -c git status.
+        -d :                删除本地分支
+        -r :                删除远程分支
+        ------------------------------------------------------------------------
+        init                在当前目录初始化项目，如 repos init git_url module_manifest_path
+        init-exist          初始化一个已存在项目，如 repos init module_manifest_path
+        status              聚合展示所有模块的仓库状态
+        pull or sync        对所有模块执行 git pull
+        push [-u]           对所有模块执行 git push, 如果 -u 则执行 git push -u remote branch
+        checkout [branch]   对所有模块执行 git checkout
+        branch              聚合展示所有模块的当前分支
+        merge               对所有模块执行 git merge
+        cfb [branch][-p]    统一创建 feature 分支. 先修改 module_manifest.xml 里的 branch 值，然后 commit, -p 表示推送到远程
+        diff                分支对比，默认和 master 对比: repos diff /  repos diff target_branch
+        cmr                 自动创建 merge request: repos cmr source_branch target_branch
+        """
+    print(txt)
+
+
+def generate_config_file(repos_module_manifest_path):
+    if not os.path.isabs(repos_module_manifest_path):
+        repos_module_manifest_path = os.path.join(os.getcwd(), repos_module_manifest_path)
+    if not os.path.exists(repos_module_manifest_path):
+        print_error("repos module manifest is not exists!!")
+    config_dir = os.path.join(os.getcwd(), REPOS_CONFIG_DIR)
+    if os.path.exists(config_dir):
+        print_error(f"{config_dir} is already exists!")
+    os.mkdir(config_dir)
+    json_config = {
+        "module_manifest_path": repos_module_manifest_path
+    }
+    config_file_dir = os.path.join(config_dir, REPOS_CONFIG_NAME)
+    with open(config_file_dir, "w") as outFile:
+        json.dump(json_config, outFile)
+    print(f"\nrepos init success! \nconfig file path: {config_file_dir}")
+
+
+def execute_init(git_url, repos_module_manifest_path, target_branch='master'):
+    __run_cmd_check_state(f"git clone -b {target_branch} {git_url}")
+    generate_config_file(repos_module_manifest_path)
+
+
+def __run_cmd_check_state(cmd):
+    state = os.system(cmd)
+    check_state_with_msg(state, cmd)
+
+
+def __search_project_dir(target_dir_name, cwd):
+    # print(cwd)
+    for sub_dir in os.listdir(cwd):
+        full_dir = os.path.join(cwd, sub_dir)
+        # print(f"\t{full_dir} is dir {os.path.isdir(full_dir)} , is target {sub_dir == target_dir_name}")
+        if os.path.isdir(full_dir) and sub_dir == target_dir_name:
+            return full_dir
+    if os.sep == cwd or os.path.dirname(cwd) == cwd:  # 达到根目录
+        print_error("The dir is not a repos dir, you may need to repos init.")
+    return __search_project_dir(target_dir_name, os.path.dirname(cwd))
+
+
+def __is_front_command(options, args):
+    for arg in args:
+        if arg in [Command.INIT.value, Command.INIT_EXIST.value, Command.CONFIG.value, Command.UPDATE.value]:
+            return True
+    for name, _ in options:
+        if name in ['-h', '--help', '--set-private-token']:
+            return True
+    return False
+
+
+def __check_file_executable(filename):
+    count = 0
+    for project in projects:
+        print('{0:-^80}'.format(project.name))
+        target_file = os.path.join(work_dir, project.name, filename)
+        if os.path.exists(target_file):
+            executable = os.access(target_file, os.X_OK)
+            if not executable:
+                os.chmod(target_file, 0o777)
+                print(executable)
+                count += 1
+    print(f'count={count}')
+
+
+def execute():
+    try:
+        options, args = getopt.getopt(sys.argv[1:], 'chd:r:', ['help', 'dr', 'rd', 'set-private-token'])
+
+        if not __is_front_command(options, args):
+            prepare()
+
+        for name, value in options:
+            if name == '-c':
+                raw_git_command = ' '.join(args)
+                execute_raw_command(raw_git_command)
+                return
+            elif name in ('-h', '--help'):
+                repos_help()
+                return
+            elif name == '-d':  # 删除本地分支
+                delete_branch(value)
+                return
+            elif name == '-r':  # 删除远程分支
+                delete_branch(value, True)
+                return
+            elif name in ('--dr', '--rd'):  # 删除本地和远程分支
+                for br in args:
+                    delete_branch(br)
+                    delete_branch(br, True)
+                return
+            elif name == '--set-private-token':
+                if len(args) != 1:
+                    print_error('The size of command argument is not matched')
+                set_private_token(args[0])
+                return
+            else:
+                print_error('error: unknown switch "{0}"'.format(name))
+                return
+
+        for index, arg in enumerate(args):
+            if arg == Command.INIT.value:
+                # repos init git_url module_manifest_path --branch=master
+                if len(args) >= 3:
+                    target_branch = 'master'
+                    for ar in args:
+                        if ar.startswith('--branch='):
+                            target_branch = ar.split('=')[1]
+                            if len(target_branch.strip()) == 0:
+                                print_error('error: you must set branch name with --branch=your_branch')
+                            break
+                    execute_init(args[1], args[2], target_branch)
+                else:
+                    print_error('The size of command argument is not matched')
+                return
+            elif arg == Command.INIT_EXIST.value:
+                # repos init module_manifest_path
+                if len(args) == 2:
+                    generate_config_file(args[1])
+                else:
+                    print_error('The size of command argument is wrong')
+                return
+            elif arg == Command.CONFIG.value:
+                print_config()
+                return
+            elif arg == 'executable':
+                __check_file_executable('gradlew')
+                return
+            elif arg == Command.UPDATE.value:
+                os.chdir(os.path.abspath(os.path.dirname(__file__)))
+                __run_cmd_check_state('git pull')
+                return
+            elif arg == Command.PULL.value or arg == 'sync':
+                final_branch = None
+                command_b = '-b'
+                if command_b in args:
+                    b_index = args.index(command_b)
+                    if len(args) > b_index + 1:
+                        final_branch = args[b_index + 1]
+                    else:
+                        print_error('command -b must set branch_name, like: -b master')
+                else:
+                    if branch_boss_project is None:
+                        print_error('resolve branch failed, you must set "boss_branch" or "repos sync -b your_branch')
+                    current_dir = os.path.join(work_dir, branch_boss_project.name)
+                    final_branch = get_actual_branch(current_dir)
+                # 组件跟随壳工程的分支名
+                pull(final_branch, '--only-source' in args)
+                break
+            elif arg == Command.PUSH.value:
+                push('-u' in args, '--skip-ci' in args)
+                break
+            elif arg == Command.BRANCH.value:
+                branch()
+                break
+            elif arg == Command.STATUS.value:
+                status()
+                break
+            elif arg == Command.CHECKOUT.value:
+                if len(args) > 1:
+                    target_branch = args[1]
+                    checkout(target_branch)
+                else:
+                    print_error(f'err: git {arg} command must contain source branch')
+                break
+            elif arg == Command.MERGE.value:
+                if len(args) > 1:
+                    # 检测当前分支是否统一
+                    branch_map = __branch()
+                    if len(branch_map) > 1:
+                        print_error('The branch of projects are not unified')
+                    source_branch = args[1]
+                    merge(source_branch)
+                else:
+                    print_error(f'err: git {arg} command must contain source branch')
+                break
+            elif arg == Command.CREATE_FEATURE_BRANCH.value:
+                if len(args) > 1:
+                    new_branch = args[1]
+                    execute_cfb(new_branch, '-p' in args)
+                else:
+                    print_error(f'err: {arg} command must contain new branch name')
+                break
+            elif arg == Command.CLEAN.value:
+                if len(args) > 1 and args[1] == 'branch':
+                    delete_merged_master_branch()
+                else:
+                    print_error(f'err: please input "repos {arg} branch" command')
+                break
+            elif arg == Command.DIFF.value:
+                if len(args) > 1:
+                    diff(args[1])
+                else:
+                    diff()
+                break
+            elif arg == Command.TAG.value:
+                if len(args) > 1:
+                    tag_name = args[1]
+                    execute_tag(tag_name)
+                else:
+                    print_error(f'err: {arg} command must set name')
+                break
+            elif arg == Command.UPDATE_GIT_URL.value:
+                update_repos_git_and_name()
+                break
+            elif arg == Command.CREATE_MERGE_REQUEST.value:  # create merge request
+                # repos cmr $target_branch $compare_branch
+                if len(args) > 1:
+                    merge_to_branch = args[1]
+                    merge_request(merge_to_branch, merge_to_branch)
+                else:
+                    print_error(f'{arg} command must set target_branch and compare_branch')
+                break
+
+            else:
+                print_error(f"unsupported command '{arg}', see 'repos -h or --help'")
+    except getopt.GetoptError as err:
+        print_error(f"{err}, see 'repos -h or --help'")
+
+
+def copy_git_hooks(project_dir):
+    if not os.path.exists(project_dir):
+        return
+    git_hooks_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'git-hooks')
+    if not os.path.exists(git_hooks_dir):
+        return
+    files = os.listdir(git_hooks_dir)
+    target_dir = os.path.join(project_dir, '.git', 'hooks')
+    for file in files:
+        shutil.copy(os.path.join(git_hooks_dir, file), target_dir)
+
+
+# 修改过的 Module 列表（和master对比）
+def diff(target_branch='master'):
+    branch_map = {}
+    branch_changed_list = {}
+    for project in projects:
+        if project.name in ignore_projects:
+            continue
+        project_dir = os.path.join(work_dir, project.name)
+        check_project_exist(project_dir, project.name)
+        copy_git_hooks(project_dir)
+        os.chdir(project_dir)
+        r = run_cmd('git branch')
+        lines = r.splitlines(False)
+        for line in lines:
+            if line.startswith('*'):
+                current_branch = line[2:]
+                if current_branch in branch_map:
+                    branch_map[current_branch].append(project.name)
+                else:
+                    branch_map[current_branch] = [project.name]
+                # diff
+                file_count = __diff_line_count(current_branch, target_branch)
+                if file_count > 0:
+                    branch_changed_list[project.name] = file_count
+                break
+    length = len(branch_map)
+    if length > 0:
+        if length == 1:
+            index = 0
+            for key, value in branch_changed_list.items():
+                index += 1
+                print(f"{index}:  {key} ({value} files diff)")
+        else:
+            print("The branch of modules are not unified.")
+            for key, value in branch_map.items():
+                print(f"\n----{key}({len(value)})----:\n\t{value}\n")
+
+
+def update_repos_git_and_name():
+    # 如果用户自定了目录，则使用用户自定义的目录
+    for project in projects:
+        print('{0:-^80}'.format(project.name))
+        if project.oldName is None or len(project.oldName) == 0:
+            print_error("The oldName attribute of project is not defined")
+        project_dir = os.path.join(work_dir, project.name)
+        project_old_dir = os.path.join(work_dir, project.oldName)
+        if not os.path.exists(project_dir) and os.path.exists(project_old_dir) and project.name != project.oldName:
+            os.rename(project_old_dir, project_dir)
+            print(f"rename {project.oldName} to {project.name}")
+
+        if not os.path.exists(project_dir):
+            print_error(f"{project_dir} not exist!")
+
+        os.chdir(project_dir)
+        cmd = f"git remote set-url origin {project.git}"
+        state = os.system(cmd)
+        if state != 0:
+            print_error(cmd)
+        print(f"update {project.name}'s git url to {project.git}")
+
+
+# 创建 merge request
+def merge_request(target_branch, compare_branch):
+    # 同步 compare_branch 代码
+    # 1. 记录当前 feature 分支
+    current_branch = ''
+    branch_map = __branch()
+
+    # 2. 分支不统一提示错误
+    if len(branch_map) > 1:
+        print_error('The branch of projects are not unified')
+    for b, p in branch_map.items():
+        current_branch = b
+        break
+
+    # 3. pull 当前分支代码（如果多人同时开发）
+    pull(current_branch)
+
+    # 4. 拉取最新的 compare_branch 分支代码
+    main_branch_name = compare_branch
+    checkout(main_branch_name)
+    pull(main_branch_name)
+
+    # 5. 同步最新的 compare_branch 代码到当前分支
+    checkout(current_branch)
+    merge(main_branch_name)
+
+    # 6. push 代码到远端
+    push(need_push=True, skip_ci=False)
+
+    # 7. 为修改过的组件创建 merge_request
+    for project in projects:
+        # 跳过忽略的项目
+        if project.name in ignore_projects:
+            continue
+        project_dir = os.path.join(work_dir, project.name)
+        check_project_exist(project_dir, project.name)
+        copy_git_hooks(project_dir)
+        os.chdir(project_dir)
+
+        if __diff_line_count(current_branch, main_branch_name) > 0:
+            merge_request_title = run_cmd('git log -1 --pretty=%B')
+            if merge_request_title is None or len(merge_request_title.strip()) == 0:
+                merge_request_title = "Create Merge request"
+            create_merge_request(project.id, current_branch, target_branch, merge_request_title, 377)  # 377 is kumu
+
+
+def prepare():
+    repos_dir = __search_project_dir(REPOS_CONFIG_DIR, os.getcwd())
+    global repos_config_dir
+    repos_config_dir = repos_dir
+    global work_dir
+    work_dir = os.path.dirname(repos_dir)
+    global manifest_file_path
+    manifest_file_path = get_module_manifest_path(os.path.join(repos_config_dir, REPOS_CONFIG_NAME))
+    parse_manifest(manifest_file_path)
+
+
+def main():
+    # Ctrl+Z (Mac) 会触发 SIGINT 信号
+    # Ctrl+C (Windows) 会触发 SIGINT 信号
+    signal.signal(signal.SIGINT, signal_handler)
+
+    # 命令执行
+    execute()
+
+
+if __name__ == '__main__':
+    main()

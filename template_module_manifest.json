@@ -1,0 +1,19 @@
+{
+  "modules": [
+    {
+      "project_id": 0,
+      "git": "git@github.com:chiclaim/Repos.git",
+      "moduleName": "Repos"
+    },
+    {
+      "project_id": 0,
+      "git": "git@github.com:chiclaim/GitRepos.git",
+      "moduleName": "Repos1"
+    },
+    {
+      "project_id": 0,
+      "git": "git@github.com:chiclaim/GitRepos.git",
+      "moduleName": "Repos2"
+    }
+  ]
+}
