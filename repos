@@ -58,7 +58,7 @@ def parse_manifest(module_manifest_path):
             if module.get('ignore', False):
                 continue
             p = Project(module['project_id'],
-                        module['moduleName'],
+                        module['module_name'],
                         module.get('importSource', True),
                         module['git'],
                         module.get('ignore', False),

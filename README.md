@@ -52,17 +52,17 @@ repos --set-private-token your-token
       "project_id": 0,
       "git": "git@github.com:chiclaim/Repos.git",
       "branch_boss": true,
-      "moduleName": "Repos"
+      "module_name": "Repos"
     },
     {
       "project_id": 0,
       "git": "git@github.com:chiclaim/GitRepos.git",
-      "moduleName": "Repos1"
+      "module_name": "Repos1"
     },
     {
       "project_id": 0,
       "git": "git@github.com:chiclaim/GitRepos.git",
-      "moduleName": "Repos2"
+      "module_name": "Repos2"
     }
   ]
 }
@@ -70,10 +70,10 @@ repos --set-private-token your-token
 
 字段说明：
 
-- project_id 用于给 gitlab 批量创建 merge request
-- git 工程等的 git url 地址
-- moduleName 工程的名称
-- branch_boss 必须要存在一个 branch_boss = true 的项目，其他的项目均以该组件的 branch 作为标准，例如 某个组件的 branch_boss=true，其他组件执行 git clone 时都会以该分支为准。
+- project_id: 用于给 gitlab 批量创建 merge request
+- git: 工程的 git url 地址
+- moduleName: 工程的名称
+- branch_boss: 必须要存在一个 branch_boss = true 的项目，其他的项目均以该组件的 branch 作为标准，例如 某个组件的 branch_boss=true，其他组件执行 git clone 时都会以该分支为准。
 
 
 ## clone 代码
