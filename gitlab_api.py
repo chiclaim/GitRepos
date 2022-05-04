@@ -7,18 +7,28 @@ import gitlab
 from utils import print_error, config_file_path
 
 key_private_token = "gitlab_private_token"
+key_git_server_url = "gitlab_server_url"
 
 
-def set_private_token(input_token):
+def set_private_token_and_url(input_token, git_server_url):
+    if input_token is None and git_server_url is None:
+        return
     if os.path.exists(config_file_path):
         with open(config_file_path, "r") as jsonFile:
             data = json.load(jsonFile)
-        data[key_private_token] = input_token
+        if input_token is not None:
+            data[key_private_token] = input_token
+        if git_server_url is not None:
+            data[key_git_server_url] = git_server_url
         with open(config_file_path, "w") as jsonFile:
             json.dump(data, jsonFile)
     else:
-        file_content = {key_private_token: input_token}
-        json_dumps = json.dumps(file_content)
+        data = {}
+        if input_token is not None:
+            data[key_private_token] = input_token
+        if git_server_url is not None:
+            data[key_git_server_url] = git_server_url
+        json_dumps = json.dumps(data)
         with open(config_file_path, "w") as jsonFile:
             jsonFile.write(json_dumps)
 
@@ -28,13 +38,16 @@ def __get_gitlab():
         with open(config_file_path, "r") as jsonFile:
             data = json.load(jsonFile)
         input_token = data.get(key_private_token)
+        git_server_url = data.get(key_git_server_url)
         if input_token is None or len(input_token.strip()) == 0:
-            print_error("please set gitlab private-token with command 'repos --set-private-token your_token'")
-        gl = gitlab.Gitlab('https://git.yourcompany.net/', private_token=input_token)
+            print_error("please set gitlab private-token with command 'repos config ...'")
+        if git_server_url is None or len(git_server_url.strip()) == 0:
+            print_error("please set gitlab git-server-url with command 'repos config ...'")
+        gl = gitlab.Gitlab(url=git_server_url, private_token=input_token)
         gl.auth()
         return gl
     else:
-        print_error("please executing 'repos --set-private-token=your_token'")
+        print_error("please executing 'repos config ...' to set gitlab parameters")
 
 
 # 根据 manifest 文件查询组件对应的 project id

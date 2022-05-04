@@ -8,17 +8,15 @@ import sys
 import json
 import shutil
 
-from gitlab_api import create_merge_request, set_private_token
+from gitlab_api import create_merge_request, set_private_token_and_url
 from beans import Project, Command
-from utils import print_error, run_cmd, config_file_path, command_prefix
-
+from utils import print_error, run_cmd, config_file_path
 
 REPOS_CONFIG_DIR = '.repos_config'
 REPOS_CONFIG_NAME = "repos_config.json"
 work_dir: string
 repos_config_dir: string
 manifest_file_path: string
-
 
 # 对于忽略的工程，不处理 merge 操作
 ignore_projects = ["flutter_reset_module"]
@@ -430,7 +428,7 @@ def __is_front_command(options, args):
         if arg in [Command.INIT.value, Command.INIT_EXIST.value, Command.CONFIG.value, Command.UPDATE.value]:
             return True
     for name, _ in options:
-        if name in ['-h', '--help', '--set-private-token']:
+        if name in ['-h', '--help']:
             return True
     return False
 
@@ -447,6 +445,15 @@ def __check_file_executable(filename):
                 print(executable)
                 count += 1
     print(f'count={count}')
+
+
+def print_config_command_tip():
+    print_error("usage: repos config [<options>]"
+                """
+            --list                  all config
+            --private-token         set your private token
+            --git-server-url        set your git server url
+            """)
 
 
 def execute():
@@ -475,11 +482,6 @@ def execute():
                     delete_branch(br)
                     delete_branch(br, True)
                 return
-            elif name == '--set-private-token':
-                if len(args) != 1:
-                    print_error('The size of command argument is not matched')
-                set_private_token(args[0])
-                return
             else:
                 print_error('error: unknown switch "{0}"'.format(name))
                 return
@@ -507,7 +509,31 @@ def execute():
                     print_error('The size of command argument is wrong')
                 return
             elif arg == Command.CONFIG.value:
-                print_config()
+                # print_config()
+                # repos config --list
+                # repos config --private-token xxx
+                # repos config --git-server-url xxx
+                if len(args) == 1:
+                    print_config_command_tip()
+                if "--list" == args[1]:
+                    print_config()
+                else:
+                    private_token = None
+                    git_server_url = None
+                    if "--private-token" in args:
+                        token_index = args.index("--private-token")
+                        if len(args) <= token_index + 1:
+                            print_error("you must set --private-token value")
+                        private_token = args[token_index + 1]
+                    if "--git-server-url" in args:
+                        url_index = args.index("--git-server-url")
+                        if len(args) <= url_index + 1:
+                            print_error("you must set --git-server-url value")
+                        git_server_url = args[url_index + 1]
+                    if private_token is None and git_server_url is None:
+                        print_config_command_tip()
+                    else:
+                        set_private_token_and_url(private_token, git_server_url)
                 return
             elif arg == 'executable':
                 __check_file_executable('gradlew')
