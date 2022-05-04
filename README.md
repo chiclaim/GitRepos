@@ -31,8 +31,8 @@ source ~/.bash_profile
 # 就可以使用 repos 命令
 repos --help
 
-# 如果需要使用自动创建 merge request（repos cmr $target_branch）需要设置你的 private-token
-repos --set-private-token your-token
+# 如果需要使用自动创建 merge request（repos cmr $target_branch）需要设置你的 git-server-url 和 private-token
+repos config --git-server-url your_git_server --private-token your_token
 
 ```
 
@@ -181,7 +181,21 @@ repos 和 git 命令一样，你可以在项目目录或任意的子目录执行
     source_branch 为当前分支，自动为修改的组件提交 merge request
     $target_branch 目标分支, 一般为 release/develop/master 分支
 
+- repos config --list
 
+    打印关于 repos 的配置信息
+
+- repos config --private-token your_token
+
+    设置你的 gitlab token
+
+- repos config --git-server-url your_git_server
+
+    设置你的 gitlab server
+
+- repos list
+
+    列出 repos 管理的项目
 
 # TODOs
 - [x] 支持通过配置环境变量的方式，全局可以使用 repos 命令

@@ -30,5 +30,6 @@ class Command(Enum):
     TAG = 'tag'
     UPDATE_GIT_URL = 'update_git_and_name'
     CREATE_MERGE_REQUEST = 'cmr'
+    LIST = 'list'
     CUSTOM = '-c'
 

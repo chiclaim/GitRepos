@@ -390,7 +390,7 @@ def generate_config_file(repos_module_manifest_path):
         print_error("repos module manifest is not exists!!")
     config_dir = os.path.join(os.getcwd(), REPOS_CONFIG_DIR)
     if os.path.exists(config_dir):
-        print_error(f"{config_dir} is already exists!")
+        shutil.rmtree(config_dir)
     os.mkdir(config_dir)
     json_config = {
         "module_manifest_path": repos_module_manifest_path
@@ -623,7 +623,11 @@ def execute():
                 else:
                     print_error(f'{arg} command must set target_branch and compare_branch')
                 break
-
+            elif arg == Command.LIST.value:
+                print(manifest_file_path)
+                for project in projects:
+                    print(f"\t{project.name}    {project.git}")
+                break
             else:
                 print_error(f"unsupported command '{arg}', see 'repos -h or --help'")
     except getopt.GetoptError as err:
