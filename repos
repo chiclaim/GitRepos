@@ -379,6 +379,8 @@ def repos_help():
         cfb [branch][-p]    统一创建 feature 分支. 先修改 module_manifest.xml 里的 branch 值，然后 commit, -p 表示推送到远程
         diff                分支对比，默认和 master 对比: repos diff /  repos diff target_branch
         cmr                 自动创建 merge request: repos cmr source_branch target_branch
+        config --private-token    设置 your gitlab token，用于 openapi 操作 gitlab
+        config --git-server-url   设置 gitlab server，用于 openapi 操作 gitlab
         """
     print(txt)
 

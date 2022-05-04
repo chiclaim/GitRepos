@@ -84,7 +84,7 @@ repos config --git-server-url your_git_server --private-token your_token
 
 repos 需要所有 git 项目的 json 配置文件，repos init 的第一个参数是配置文件所在的仓库的git url，第二个参数就是配置文件的相对路径（也可以绝对路径）
 
-例如:
+以本 Repos 项目为例:
 
 ```
 repos init git@github.com:chiclaim/GitRepos.git GitRepos/template_module_manifest.json
