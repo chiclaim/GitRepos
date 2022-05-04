@@ -176,10 +176,11 @@ repos 和 git 命令一样，你可以在项目目录或任意的子目录执行
 
     分支对比，可以输出你修改了哪些组件
 
-- repos cmr $target_branch
+- repos cmr $target_branch $assignee_id
 
     source_branch 为当前分支，自动为修改的组件提交 merge request
     $target_branch 目标分支, 一般为 release/develop/master 分支
+    $assignee_id 代码管理者 id
 
 - repos config --list
 

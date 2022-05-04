@@ -618,12 +618,13 @@ def execute():
                 update_repos_git_and_name()
                 break
             elif arg == Command.CREATE_MERGE_REQUEST.value:  # create merge request
-                # repos cmr $target_branch $compare_branch
-                if len(args) > 1:
+                # repos cmr $target_branch $assignee_id
+                if len(args) > 2:
                     merge_to_branch = args[1]
-                    merge_request(merge_to_branch, merge_to_branch)
+                    assignee_id = args[2]
+                    merge_request(merge_to_branch, merge_to_branch, assignee_id)
                 else:
-                    print_error(f'{arg} command must set target_branch and compare_branch')
+                    print_error(f'missing parameter, repos cmr $target_branch $assignee_id')
                 break
             elif arg == Command.LIST.value:
                 print(manifest_file_path)
@@ -710,7 +711,7 @@ def update_repos_git_and_name():
 
 
 # 创建 merge request
-def merge_request(target_branch, compare_branch):
+def merge_request(target_branch, compare_branch, assignee_id):
     # 同步 compare_branch 代码
     # 1. 记录当前 feature 分支
     current_branch = ''
@@ -752,7 +753,7 @@ def merge_request(target_branch, compare_branch):
             merge_request_title = run_cmd('git log -1 --pretty=%B')
             if merge_request_title is None or len(merge_request_title.strip()) == 0:
                 merge_request_title = "Create Merge request"
-            create_merge_request(project.id, current_branch, target_branch, merge_request_title, 377)  # 377 is kumu
+            create_merge_request(project.id, current_branch, target_branch, merge_request_title, assignee_id)
 
 
 def prepare():
